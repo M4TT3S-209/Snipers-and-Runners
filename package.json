@@ -1,0 +1,25 @@
+{
+  "name": "scope-rush",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter client --filter server dev",
+    "dev:client": "pnpm --filter client dev",
+    "dev:server": "pnpm --filter server dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm --filter client build",
+    "size": "node scripts/check-size.mjs client/dist",
+    "icons": "node scripts/make-icons.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "typescript": "7.0.2",
+    "vitest": "4.1.12"
+  }
+}

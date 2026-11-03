@@ -1,0 +1,507 @@
+/* Scope Rush – Grundstil (bunt, rund, comic-artig, Hochformat) */
+
+:root {
+  --bg: #1d2147;
+  --panel: rgba(18, 20, 50, 0.9);
+  --panel-border: rgba(255, 255, 255, 0.14);
+  --text: #ffffff;
+  --muted: #b9bde6;
+  --accent: #ffd23f;
+  --accent-2: #ff7a1a;
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+  --radius: 18px;
+  font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #0d0f24;
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+#app {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Desktop-Browser (nur zum Testen): Spiel als Hochformat-Rahmen in der Mitte */
+@media (pointer: fine) and (min-aspect-ratio: 3/4) {
+  #app {
+    left: 50%;
+    right: auto;
+    width: min(100vw, calc(100dvh * 9 / 19.5));
+    transform: translateX(-50%);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+}
+
+#scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+#ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ---------- Kopfzeile (nur Anzeige, keine Bedienelemente) ---------- */
+
+.top-bar {
+  position: absolute;
+  top: calc(var(--sat) + 8px);
+  left: calc(var(--sal) + 12px);
+  right: calc(var(--sar) + 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  text-shadow:
+    0 3px 0 #b8481a,
+    0 5px 10px rgba(0, 0, 0, 0.35);
+  -webkit-text-stroke: 1px #6b2a0c;
+}
+
+.badge {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--accent-2);
+  color: #fff;
+  box-shadow: 0 2px 0 #9a3f0a;
+}
+
+.stats {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #fff;
+  background: rgba(10, 12, 30, 0.55);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.stats b {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Bedienbereich (untere Hälfte) ---------- */
+
+.sheet {
+  position: absolute;
+  left: calc(var(--sal) + 10px);
+  right: calc(var(--sar) + 10px);
+  bottom: calc(var(--sab) + 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  pointer-events: auto;
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tile.center {
+  justify-content: center;
+  padding: 4px;
+}
+
+.tile-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.tile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.tile-grid .btn {
+  width: 100%;
+  min-height: 44px;
+  line-height: 1.15;
+}
+
+.server-status {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.status-main {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.server-status small {
+  font-size: 11px;
+  font-weight: 600;
+  padding-left: 16px;
+}
+
+.status-line {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  padding: 2px 0 0;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+.dot.ok {
+  background: var(--ok);
+  box-shadow: 0 0 8px var(--ok);
+}
+.dot.warn {
+  background: var(--warn);
+}
+.dot.bad {
+  background: var(--bad);
+}
+
+.ok {
+  color: var(--ok);
+}
+.warn {
+  color: var(--warn);
+}
+.bad {
+  color: var(--bad);
+}
+.muted {
+  color: var(--muted);
+}
+
+.btn {
+  appearance: none;
+  border: 0;
+  font: inherit;
+  font-weight: 800;
+  font-size: 14px;
+  color: #fff;
+  background: #3a3f7a;
+  border-radius: 12px;
+  padding: 10px 14px;
+  min-height: 40px;
+  box-shadow: 0 3px 0 #23265a;
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
+.btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #23265a;
+}
+
+.btn.small {
+  padding: 8px 12px;
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.btn.icon {
+  width: 40px;
+  padding: 0;
+  font-size: 20px;
+  flex: 0 0 auto;
+}
+
+.btn.primary {
+  background: var(--accent);
+  color: #3b2300;
+  box-shadow: 0 3px 0 #b8901a;
+}
+
+.btn.ghost {
+  background: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.btn.on {
+  background: #2f9e5b;
+  box-shadow: 0 3px 0 #1d6b3c;
+}
+
+.gesture-pad {
+  height: 76px;
+  flex: 0 0 auto;
+  border: 2px dashed rgba(255, 255, 255, 0.28);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 900;
+  touch-action: none;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.gesture-pop {
+  animation: pop 0.25s ease-out;
+}
+
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 6px 6px 12px;
+  border-radius: 12px;
+  background: #2f9e5b;
+  font-weight: 800;
+}
+
+/* ---------- Anleitung „Zum Home-Bildschirm“ ---------- */
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 6, 20, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 10px calc(var(--sab) + 10px);
+  pointer-events: auto;
+}
+
+.modal {
+  width: 100%;
+  max-width: 460px;
+  background: #262b63;
+  border: 1px solid var(--panel-border);
+  border-radius: 22px;
+  padding: 18px 16px 14px;
+  position: relative;
+}
+
+.modal h2 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: var(--accent);
+}
+
+.modal p {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.steps {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.steps li {
+  display: flex;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.step-num {
+  flex: 0 0 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+/* ---------- Safe-Area-Anzeige ---------- */
+
+.safe-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.safe-overlay > div {
+  position: absolute;
+  background: rgba(255, 0, 170, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.safe-top {
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--sat);
+}
+.safe-bottom {
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--sab);
+}
+.safe-left {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--sal);
+}
+.safe-right {
+  top: 0;
+  bottom: 0;
+  right: 0;
+  width: var(--sar);
+}
+
+.safe-overlay > .half-line {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px dashed rgba(255, 210, 63, 0.9);
+  background: transparent;
+  color: var(--accent);
+  justify-content: flex-end;
+  padding-right: 8px;
+  transform: translateY(-1px);
+}
+
+/* ---------- Hochformat-Hinweis ---------- */
+
+.rotate-overlay {
+  display: none;
+}
+
+@media (orientation: landscape) and (pointer: coarse) {
+  .rotate-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    padding: 20px;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .rotate-overlay h2 {
+    margin: 0;
+    color: var(--accent);
+  }
+  .rotate-overlay p {
+    margin: 0;
+    color: var(--muted);
+  }
+  .rotate-icon {
+    font-size: 54px;
+    animation: rotate-hint 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes rotate-hint {
+  0%,
+  20% {
+    transform: rotate(90deg);
+  }
+  60%,
+  100% {
+    transform: rotate(0deg);
+  }
+}

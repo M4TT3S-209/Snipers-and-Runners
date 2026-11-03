@@ -1,0 +1,31 @@
+{
+  // Cloudflare-Worker für Runners vs. Snipers (Spieltitel: Scope Rush).
+  // Läuft komplett im Free-Plan: nur SQLite-basierte Durable Objects.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "runners-vs-snipers",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "observability": { "enabled": true },
+
+  "durable_objects": {
+    "bindings": [
+      { "name": "HUB", "class_name": "HubDO" },
+      { "name": "ROOM", "class_name": "RoomDO" }
+    ]
+  },
+
+  // WICHTIG: Im Free-Plan sind nur SQLite-DOs erlaubt → new_sqlite_classes.
+  // Migrationen nie ändern, nur neue anhängen (tag "v2", "v3", …).
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["HubDO", "RoomDO"] }],
+
+  "vars": {
+    // Erlaubte Herkunft der Spielseite (kein Geheimnis).
+    "ALLOWED_ORIGINS": "https://m4tt3s-209.github.io",
+    // "prod" auf Cloudflare; `pnpm dev` setzt "dev" (erlaubt dann auch localhost/LAN).
+    "ENVIRONMENT": "prod",
+    // Wird beim Deploy durch die Commit-ID ersetzt.
+    "BUILD_ID": "local"
+  }
+}

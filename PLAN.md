@@ -1,6 +1,6 @@
 # Scope Rush – Projektplan
 
-> Stand: 03.11.2026 · Status: **Entwurf, wartet auf OK**
+> Stand: 03.11.2026 · Status: **freigegeben**, M0 in Arbeit
 > Online-Multiplayer-Spiel im Hochformat für iPhone. Läufer gegen Sniper, 1v1-Duelle und Party-Modus.
 > Komplett kostenlos: GitHub Pages (Frontend) + Cloudflare Workers/Durable Objects im Free-Plan (Backend).
 
@@ -20,7 +20,7 @@
 
 | # | Annahme | Warum |
 |---|---------|-------|
-| A1 | Spiel-URL: `https://m4tt3s-209.github.io/Snipers-and-Runners/`, Server-URL: `https://scope-rush.<dein-subdomain>.workers.dev` | Folgt aus dem Repo-Namen. Eine Umbenennung des Repos wäre vor M0 am einfachsten (siehe Frage F1). |
+| A1 | Spiel-URL: `https://m4tt3s-209.github.io/runners-vs-snipers/`, Server-URL: `https://runners-vs-snipers.<dein-subdomain>.workers.dev`. Der Spieltitel bleibt „Scope Rush“. | Entschieden (F1): Das Repo wird in `runners-vs-snipers` umbenannt. Der Build übernimmt den Unterpfad automatisch aus dem Repo-Namen. |
 | A2 | Wir arbeiten direkt auf `main`. Jeder Push löst den Deploy aus. | So hast du es vorgegeben. Du arbeitest allein, deshalb gibt es keine PR-Pflicht. |
 | A3 | 3 Spuren, 60 Simulations-Ticks/s, Server verschickt 20 Zustandsupdates/s | Bewährte Werte für Lane-Runner. Sie lassen sich zentral in der Config ändern. |
 | A4 | Leben intern als **6 Halbherzen** (angezeigt als 3 Herzen). Präzisionsgewehr: Körper −2 (= 1 Herz), Kopf −6 (= raus). Halbautomatik: Körper −1, Kopf −3. | Damit ist „weniger Schaden“ bei der Halbautomatik möglich, ohne von den 3 Leben abzuweichen. |
@@ -30,7 +30,7 @@
 | A8 | Grafik und Sound werden **prozedural im Code erzeugt** (Low-Poly-Formen, Canvas-Texturen, WebAudio-Synth). CC0-Assets von Kenney kommen nur dazu, wenn es sich lohnt. | Kein Lizenzrisiko, winzige Ladegröße (Ziel < 2 MB). |
 | A9 | Menüs werden als HTML/CSS-Overlay mit **Preact** (≈ 4 KB) gebaut, das 3D-Spiel mit Three.js. | Menüs mit Freundesliste und Lobby sind in HTML einfacher und schärfer als in WebGL. |
 | A10 | Bezeichner im Code sind englisch, Kommentare und Doku deutsch, alle Spieltexte deutsch in einer Datei (`client/src/i18n/de.ts`). | Für dich lesbar, für Werkzeuge Standard. |
-| A11 | Android/Chrome läuft nebenbei mit, wird aber nicht gezielt optimiert. | Zielgerät ist das iPhone. |
+| A11 | **Nur iPhone** (Safari / Home-Bildschirm-App). Android wird nicht getestet. | Entschieden (F3). |
 | A12 | Gespeichert werden nur Spielername, Tag, Statistiken und Freischaltungen. IP-Adressen landen nur gesalzen-gehasht und maximal 10 Minuten in der Datenbank (für die Netzwerk-Kopplung). | Datensparsam, kein Datenschutz-Ballast. |
 
 ---
@@ -192,7 +192,7 @@ Diese Punkte lassen sich **nicht genau wie gewünscht** umsetzen. Hier steht jew
 - **iOS-Schutz:**
   - Zoomen und Gummiband verhindern: `touch-action: none`, `overscroll-behavior: none`, `position: fixed` am Body, `gesturestart` abfangen (iOS ignoriert `user-scalable=no` in Safari).
   - Text-Markieren und Lupe aus: `-webkit-user-select: none`, `-webkit-touch-callout: none`, `preventDefault` auf `touchstart` im Spielbereich.
-- **Wake Lock:** `navigator.wakeLock` während des Spiels (in der Home-Bildschirm-App zuverlässig ab iOS 18.4). Als Ersatz dient ein unsichtbares Mini-Video in Schleife.
+- **Wake Lock:** `navigator.wakeLock` während des Spiels (in der Home-Bildschirm-App zuverlässig ab iOS 18.4). Weil wir nur aktuelles iOS unterstützen, braucht es keinen Ersatz (z. B. ein unsichtbares Mini-Video).
 - **Audio:** Der `AudioContext` startet beim ersten Tipp. Alle Sounds werden synthetisch erzeugt, es gibt keine Audiodateien.
 - **PWA:** Manifest, Icons (beim Build erzeugt) und ein handgeschriebener Service Worker (App-Shell im Cache, HTML immer frisch vom Netz). Beim App-Start und bei jeder Rückkehr prüft der Client `version.json`. Ist sie neu, erscheint ein Banner „Update verfügbar – neu laden“.
 - **Versions-Check mit dem Server:** Der Hub schickt beim Verbinden die `PROTOCOL_VERSION`. Passt sie nicht, sperren Server und Client das Online-Spiel und zeigen das Update-Banner. Offline-Spiel geht weiter.
@@ -535,8 +535,8 @@ Am Ende jedes Meilensteins: Tests grün → Deploy → kurze Zusammenfassung + i
 
 ---
 
-## 13. Offene Fragen an dich (nicht blockierend – sonst gelten die Annahmen)
+## 13. Entschiedene Fragen
 
-- **F1 – URL:** Das Spiel läge unter `m4tt3s-209.github.io/Snipers-and-Runners/`. Möchtest du das Repo vor M0 in z. B. `scope-rush` umbenennen? Dann würde die URL `…github.io/scope-rush/`. Das geht später auch noch, aber dann verlieren alle ihre Konten auf dem Gerät (neue Adresse = neuer Speicher). Empfehlung: jetzt entscheiden.
-- **F2 – Cloudflare:** Hast du schon ein Cloudflare-Konto? Falls nicht, ist das kein Problem, die Anleitung in M0 beginnt bei null.
-- **F3 – Mitspieler-Geräte:** Haben alle Freunde ein iPhone, oder soll ich Android (Chrome) gezielt mittesten?
+- **F1 – URL:** Das Repo wird in `runners-vs-snipers` umbenannt. Spiel: `https://m4tt3s-209.github.io/runners-vs-snipers/`. Der Spieltitel bleibt „Scope Rush“ (Arbeitstitel).
+- **F2 – Cloudflare:** Es gibt noch kein Konto. Die Anleitung von null steht in [docs/SETUP.md](docs/SETUP.md).
+- **F3 – Geräte:** nur iPhone.

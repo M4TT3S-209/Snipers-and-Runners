@@ -1,0 +1,124 @@
+# Bei jedem Push auf main:
+#   1. prüfen (Typen + Tests)
+#   2. Server → Cloudflare (nur wenn die Secrets eingerichtet sind)
+#   3. Spiel → GitHub Pages (nur wenn Pages auf „GitHub Actions“ steht)
+# Anleitung zum Einrichten: docs/SETUP.md
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  WRANGLER_SEND_METRICS: 'false'
+
+jobs:
+  check:
+    name: Prüfen (Typen + Tests)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  worker:
+    name: Server → Cloudflare
+    needs: check
+    runs-on: ubuntu-latest
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Worker deployen
+        id: deploy
+        shell: bash
+        working-directory: server
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          FALLBACK_URL: ${{ vars.SERVER_URL }}
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning title=Cloudflare noch nicht eingerichtet::Der Server wird übersprungen. Anleitung: docs/SETUP.md, Teil B und C."
+            echo "url=$FALLBACK_URL" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          pnpm exec wrangler deploy --var "BUILD_ID:${GITHUB_SHA::7}" 2>&1 | tee deploy.log
+          URL=$(grep -oE 'https://[a-zA-Z0-9.-]+\.workers\.dev' deploy.log | head -n1 || true)
+          if [ -z "$URL" ]; then URL="$FALLBACK_URL"; fi
+          echo "Server-Adresse: $URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "### Server läuft: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+  pages:
+    name: Spiel → GitHub Pages
+    needs: worker
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Ist GitHub Pages eingeschaltet?
+        id: pages
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TYPE=$(gh api "repos/${GITHUB_REPOSITORY}/pages" --jq .build_type 2>/dev/null || true)
+          if [ "$TYPE" = "workflow" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning title=GitHub Pages noch nicht eingeschaltet::Settings → Pages → Source: „GitHub Actions“. Anleitung: docs/SETUP.md, Teil A."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Spiel bauen
+        shell: bash
+        env:
+          VITE_SERVER_URL: ${{ needs.worker.outputs.url }}
+          VITE_BUILD_ID: ${{ github.sha }}
+        run: |
+          # Unterpfad = Repo-Name, z. B. /runners-vs-snipers/ – passt sich beim Umbenennen automatisch an.
+          export VITE_BASE="/${GITHUB_REPOSITORY#*/}/"
+          echo "Unterpfad: $VITE_BASE · Server: ${VITE_SERVER_URL:-(keiner)}"
+          pnpm build
+      - run: pnpm size
+      - if: steps.pages.outputs.ready == 'true'
+        uses: actions/configure-pages@v5
+      - if: steps.pages.outputs.ready == 'true'
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: client/dist
+      - if: steps.pages.outputs.ready == 'true'
+        id: deployment
+        uses: actions/deploy-pages@v4

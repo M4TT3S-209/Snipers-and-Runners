@@ -10,21 +10,32 @@ Die ausführliche Planung steht in **[PLAN.md](PLAN.md)**. Diese Datei fasst zus
 - Kollidiert eine Anforderung mit dem Free-Plan oder iOS, das dem Nutzer sagen und eine Alternative vorschlagen. Nichts still weglassen.
 - Nichts aus Fortnite oder Snipers Duel kopieren (Namen, Figuren, Logos, Sounds, Grafiken, Karten). Assets prozedural oder CC0.
 
-## Befehle (Stand: geplant, wird mit M0 eingerichtet)
+## Befehle
 ```bash
-pnpm install              # Abhängigkeiten
+pnpm install              # Abhängigkeiten (pnpm 10, Node ≥ 22.12)
 pnpm dev                  # Client (Vite, :5173) + Server (wrangler dev, :8787) gleichzeitig
 pnpm dev:client           # nur Client
-pnpm dev:server           # nur Worker lokal (inkl. Durable Objects)
-pnpm test                 # alle Vitest-Tests (shared + server)
-pnpm typecheck            # tsc --noEmit für alle Pakete
-pnpm build                # Client-Build nach client/dist
+pnpm dev:server           # nur Worker lokal (inkl. Durable Objects, ENVIRONMENT=dev)
+pnpm test                 # alle Vitest-Tests (shared, client, server)
+pnpm typecheck            # tsc für alle Pakete
+pnpm build                # Client-Build nach client/dist (VITE_BASE, VITE_SERVER_URL, VITE_BUILD_ID)
 pnpm size                 # prüft Ladegröße (< 5 MB)
+pnpm icons                # App-Icons neu erzeugen (lokal, braucht globales Playwright)
+node scripts/smoke.mjs    # Browser-Smoke-Test im iPhone-Format (vorher pnpm dev)
 ```
 Nützliche URL-Parameter im Client:
-- `?lag=150&jitter=40`: künstliche Netzverzögerung
-- `?debug=1`: Balancing-Regler und Netz-Statistik
+- `?lag=150&jitter=40&spike=5`: künstliche Netzverzögerung (Reihenfolge bleibt erhalten)
+- `?debug=1`: Balancing-Regler und Netz-Statistik (ab M1)
 - `?server=http://localhost:8787`: anderer Server
+
+Versionen (bewusst gewählt):
+- TypeScript 7.0
+- Vite 8
+- Vitest **4.1**: nicht 5, weil `@cloudflare/vitest-pool-workers` noch Vitest 4 braucht
+- Three.js 0.187
+- Preact 11
+- zod 4
+- wrangler 4.157
 
 ## Struktur
 - `shared/`: Spielregeln, Bewegung, Ballistik, Streckengenerator, Bots, Nachrichtenschemas (zod), **`config.ts` mit allen Balancing-Werten**
@@ -52,12 +63,14 @@ Nützliche URL-Parameter im Client:
 - Git: direkt auf `main` (jeder Push deployt). Vor dem Push `pnpm typecheck && pnpm test` ausführen. Commit-Nachrichten kurz, deutsch oder englisch, im Imperativ.
 
 ## Wichtige Adressen
-- Spiel (GitHub Pages): https://m4tt3s-209.github.io/Snipers-and-Runners/ (ab M0)
-- Server (Cloudflare Worker): `https://scope-rush.<subdomain>.workers.dev`, wird nach dem ersten Deploy eingetragen
+- Repo: `M4TT3S-209/runners-vs-snipers` (früher `Snipers-and-Runners`, GitHub leitet weiter)
+- Spiel (GitHub Pages): https://m4tt3s-209.github.io/runners-vs-snipers/
+- Server (Cloudflare Worker `runners-vs-snipers`): `https://runners-vs-snipers.<subdomain>.workers.dev`. Die Adresse steht nach dem Deploy in der Actions-Zusammenfassung. Der Client bekommt sie beim Build automatisch.
+- Einrichtung für den Nutzer: [docs/SETUP.md](docs/SETUP.md)
 
 ## Aktueller Stand
-- [x] Plan erstellt (PLAN.md), **wartet auf OK des Nutzers**
-- [ ] M0 Grundgerüst + Deploy-Pipeline + Testseite
+- [x] Plan erstellt (PLAN.md) und vom Nutzer freigegeben (nur iPhone, Repo-Name `runners-vs-snipers`)
+- [x] M0 Grundgerüst + Deploy-Pipeline + Testseite (Code fertig, lokal getestet). Wartet auf die Einrichtung durch den Nutzer (SETUP.md) und den iPhone-Test.
 - [ ] M1 Offline-Prototyp gegen Bots
 - [ ] M2 Online-1v1 per Raum-Link
 - [ ] M3 Konten, Freunde, Herausforderungen, Party-Lobby
@@ -68,6 +81,10 @@ Nützliche URL-Parameter im Client:
 ## Entscheidungen und Erkenntnisse (laufend ergänzen)
 - iOS kopiert beim „Zum Home-Bildschirm“ (ab 17.2) nur **Cookies** aus Safari, nicht localStorage. Darum liegt das Konto-Token in beiden. Fallback ist die Netzwerk-Kopplung (gleiche IP, 10 min, Bestätigung per Tipp), danach der Übertragungscode.
 - Der Haptik-„Switch-Trick“ ist laut ios-haptics seit iOS 26.5 gesperrt. Wir verlassen uns nicht darauf.
+- zod nur im Server: Der Client importiert `@scope-rush/shared` (ohne zod), der Server zusätzlich `@scope-rush/shared/schemas`.
+- Service Worker (`client/src/platform/sw.js`) wird beim Build mit der Build-ID erzeugt. HTML kommt network-first, `/assets/` cache-first, `version.json` nie aus dem Cache.
+- Die CI überspringt den Worker-Deploy, solange die Cloudflare-Secrets fehlen, und den Pages-Deploy, solange Pages nicht auf „GitHub Actions“ steht (jeweils mit Warnung statt Fehler).
+- Kein Backdrop-Blur über dem WebGL-Canvas (kostet auf dem iPhone in jedem Bild Leistung).
 - Free-Plan DO (Recherche Nov. 2026):
   - 100k Requests/Tag (eingehende WS-Nachrichten 20:1, ausgehende gratis)
   - 13.000 GB-s/Tag

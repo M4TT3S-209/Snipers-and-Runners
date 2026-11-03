@@ -1,0 +1,9 @@
+packages:
+  - shared
+  - client
+  - server
+
+# Diese Pakete dürfen beim Installieren Skripte ausführen (laden ihre Programmdateien).
+onlyBuiltDependencies:
+  - esbuild
+  - workerd

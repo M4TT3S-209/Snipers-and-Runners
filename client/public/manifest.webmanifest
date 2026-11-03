@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "Scope Rush",
+  "short_name": "Scope Rush",
+  "description": "Läufer gegen Sniper – Online-Duelle mit Freunden.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1d2147",
+  "theme_color": "#1d2147",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

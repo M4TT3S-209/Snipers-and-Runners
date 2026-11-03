@@ -1,0 +1,17 @@
+{
+  "name": "server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --port 8787 --ip 0.0.0.0 --var ENVIRONMENT:dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@scope-rush/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261103.1",
+    "wrangler": "4.157.0"
+  }
+}
