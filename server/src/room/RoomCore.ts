@@ -404,6 +404,32 @@ export class RoomCore {
   private maybeRematch(): void {
     const flow = this.flow;
     if (!flow) return;
+    // 1v1 mit Zuschauern: Sieger bleibt, der nächste Zuschauer fordert ihn heraus,
+    // der Verlierer stellt sich hinten an.
+    if (this.mode === 'duel' && flow.winnerId) {
+      const inLastMatch = new Set(flow.players.map((p) => p.id));
+      const candidates = [...this.members.values()].filter((m) => m.conn && !inLastMatch.has(m.id));
+      const winner = this.members.get(flow.winnerId);
+      if (candidates.length > 0 && winner?.conn) {
+        if (!this.rematchVotes.has(winner.id)) return;
+        const loserId = flow.players.find((p) => p.id !== winner.id)?.id;
+        const loser = loserId ? this.members.get(loserId) : undefined;
+        if (loser) {
+          this.members.delete(loser.id);
+          this.members.set(loser.id, loser);
+        }
+        const next = candidates[0]!;
+        for (const m of this.members.values()) m.seat = m === winner || m === next ? 'player' : 'spectator';
+        this.startMatch([next, winner]);
+        return;
+      }
+    }
+    if (this.mode === 'classic') {
+      const players = [...this.members.values()].filter((m) => m.seat === 'player' && m.conn);
+      if (players.length < CONFIG.party.minPlayers || !players.every((p) => this.rematchVotes.has(p.id))) return;
+      this.startMatch(players);
+      return;
+    }
     const players = flow.players.map((p) => this.members.get(p.id)).filter((m): m is Member => !!m && !!m.conn);
     if (players.length < flow.players.length) return;
     if (!players.every((p) => this.rematchVotes.has(p.id))) return;

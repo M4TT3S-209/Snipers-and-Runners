@@ -54,5 +54,6 @@ Solange 1–4 fehlen, laufen die Tests trotzdem bei jedem Push. Server und Spiel
 
 ## Später (wenn wir dort ankommen)
 
-- ❓ Party-Modus: Sollen Läufer sich gegenseitig sehen und überholen können? Geplant ist ja (als halb durchsichtige Figuren).
+- ✔ Party-Modus: Mitläufer sind in der Läufer-Sicht halb durchsichtig und kollidieren nicht. Sag Bescheid, falls du es anders willst.
+- ✔ „1v1 mit Zuschauern“: Der Sieger bleibt, der nächste wartende Freund fordert ihn heraus (Revanche-Knopf des Siegers).
 - ❓ Namensfilter: Gibt es Wörter, die in eurem Freundeskreis auf keinen Fall als Name gehen sollen (oder gerade unbedingt erlaubt sein müssen)?

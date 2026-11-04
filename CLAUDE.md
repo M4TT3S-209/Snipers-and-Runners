@@ -74,7 +74,7 @@ Versionen (bewusst gewählt):
 - [x] M1 Offline-Prototyp gegen Bots (Duell Best of 3, Übung Läufer/Sniper, Klassik mit Bots, alle Waffen/Gadgets, 5 Themen, Debug-Regler). Wartet auf das iPhone-Feedback des Nutzers (docs/OFFENE-PUNKTE.md).
 - [x] M2 Online-1v1 per Raum-Link (RoomCore + RoomDO, RemoteSession mit Vorhersage/Interpolation/Lag-Komp., Pause bei App-Wechsel, Revanche). Lokal mit 2 Browsern + 150 ms Lag getestet. Wartet auf Test mit 2 iPhones.
 - [x] M3 Konten (Name#Tag, Geräte-Tokens, Cookie, Kopplung, Übertragungscode/QR), Freunde (Link/QR/Name#Tag), Status, Herausforderung mit Pop-up + Posteingang, Party-Lobby mit Einladungen, Statistik. Lokal mit 2 Browsern getestet.
-- [ ] M4 Waffen/Gadgets, Streckengenerator, Klassik
+- [x] M4 Waffen/Gadgets (mit Auswahl), Streckengenerator (13 Segmente, 5 Themen), Klassik online (3–8 Spieler, 1–2 Sniper, Zuschauen durchs Zielfernrohr), 1v1 mit Zuschauern (Sieger bleibt)
 - [ ] M5 Feinschliff, Trophäen, Statistiken, Tutorial
 - [ ] M6 (optional) Web-Push
 

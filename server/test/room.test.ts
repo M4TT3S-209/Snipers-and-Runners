@@ -244,3 +244,49 @@ describe('Raum: Wiederherstellung nach Aufwachen', () => {
     expect(JSON.stringify(generateTrack({ seed: plan.seed, theme: plan.theme }))).toBe(JSON.stringify(s.core.flow!.track));
   });
 });
+
+describe('Raum: Party', () => {
+  it('Klassik mit 4 Spielern: jeder einmal Sniper, Punkte, Revanche', () => {
+    let now = 5_000_000;
+    const ended: MatchSummary[] = [];
+    const core = new RoomCore('party01', () => now, { buildId: 't', onMatchEnd: (x) => ended.push(x) });
+    const cs = ['Anna', 'Ben', 'Cem', 'Dana'].map((n, i) => {
+      const c = new FakeClient(core, n, `key${n}xxxxxxxxx${i}`);
+      c.msg({ t: 'join', name: n, key: c.key });
+      return c;
+    });
+    cs[0]!.msg({ t: 'mode', mode: 'classic' });
+    expect(cs[3]!.last('room')!.room.members.every((m) => m.seat === 'player')).toBe(true);
+    for (const c of cs) c.msg({ t: 'ready', ready: true });
+    expect(core.flow!.mode).toBe('classic');
+    for (let i = 0; i < 400 && core.flow!.phase !== 'matchResult'; i++) {
+      for (let t = 0; t < 1000; t += 50) {
+        now += 50;
+        if (t === 0) for (const c of cs) c.msg({ t: 'sync', c: now });
+        core.tick();
+      }
+    }
+    expect(core.flow!.phase).toBe('matchResult');
+    const snipers = core.flow!.records.flatMap((r) => r.plan.sniperIds).sort();
+    expect(snipers).toEqual(cs.map((c) => c.memberId!).sort());
+    expect(ended).toHaveLength(1);
+    for (const c of cs) c.msg({ t: 'rematch' });
+    expect(core.flow!.phase).toBe('loadout');
+  });
+
+  it('1v1 mit Zuschauern: Sieger bleibt, nächster Zuschauer ist dran', () => {
+    const s = setup();
+    const c = new FakeClient(s.core, 'Cem', 'keyCem12345678');
+    c.msg({ t: 'join', name: 'Cem', key: c.key });
+    expect(s.core.roomInfo().members.find((m) => m.name === 'Cem')!.seat).toBe('spectator');
+    startMatch(s);
+    s.advance(12000, [s.a, s.b, c]);
+    s.b.msg({ t: 'leave' }); // Ben gibt auf → Anna gewinnt
+    expect(s.core.flow!.winnerId).toBe(s.a.memberId);
+    const b2 = new FakeClient(s.core, 'Ben', s.b.key);
+    b2.msg({ t: 'join', name: 'Ben', key: s.b.key });
+    s.a.msg({ t: 'rematch' });
+    expect(s.core.flow!.phase).toBe('loadout');
+    expect(s.core.flow!.players.map((p) => p.name).sort()).toEqual(['Anna', 'Cem']);
+  });
+});

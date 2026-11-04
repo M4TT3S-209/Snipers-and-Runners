@@ -246,8 +246,10 @@ export class GameRenderer {
     const speed = anim === 'run' ? r.speed : 0;
     model.animate(dt, anim, speed);
 
-    // Ausgeschieden → langsam durchsichtig
-    const targetAlpha = r.out ? 0.3 : 1;
+    // Ausgeschieden → langsam durchsichtig. In der Läufer-Sicht sind Mitläufer
+    // (Klassik) halb durchsichtig, damit man die eigene Figur sofort erkennt.
+    const ghostOther = view.myRole === 'runner' && r.id !== view.myId;
+    const targetAlpha = r.out ? 0.3 : ghostOther ? 0.55 : 1;
     entry.outFade += (targetAlpha - entry.outFade) * Math.min(1, dt * 4);
     model.setOpacity(entry.outFade > 0.98 ? 1 : entry.outFade);
 
