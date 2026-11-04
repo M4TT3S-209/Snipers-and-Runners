@@ -26,6 +26,8 @@ document.body.appendChild(rotate);
 const canvas = document.getElementById('scene') as HTMLCanvasElement;
 const host = new GameHost(canvas);
 host.start();
+// Nur beim Entwickeln: Zugriff für Tests im Browser
+if (import.meta.env.DEV) (window as unknown as { __host: GameHost }).__host = host;
 
 const debug = new URLSearchParams(location.search).has('debug');
 const ui = document.getElementById('ui');

@@ -31,6 +31,7 @@ export class ReconnectingSocket<In = ServerMessage, Out = ClientMessage> {
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private probeTimer: ReturnType<typeof setTimeout> | null = null;
   private lastMessageAt = 0;
+  private wokeWithoutReply = false;
   private stopped = true;
   private status: SocketStatus = 'connecting';
   private readonly sendQueue: LagQueue | null;
@@ -66,6 +67,11 @@ export class ReconnectingSocket<In = ServerMessage, Out = ClientMessage> {
 
   get isOpen(): boolean {
     return this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  /** Offen UND kürzlich etwas vom Server gehört (nach iOS-Einfrieren ist der Socket oft nur scheinbar offen). */
+  healthy(maxSilenceMs = 3000): boolean {
+    return this.isOpen && performance.now() - this.lastMessageAt < maxSilenceMs && !this.wokeWithoutReply;
   }
 
   /** Sofort neu verbinden (z. B. per Button). */
@@ -118,6 +124,7 @@ export class ReconnectingSocket<In = ServerMessage, Out = ClientMessage> {
     ws.onmessage = (event) => {
       if (ws !== this.ws) return;
       this.lastMessageAt = performance.now();
+      this.wokeWithoutReply = false;
       const data = event.data;
       if (typeof data !== 'string' || data === HEARTBEAT_PONG) return;
       let msg: In;
@@ -179,6 +186,7 @@ export class ReconnectingSocket<In = ServerMessage, Out = ClientMessage> {
       return;
     }
     const probeStart = performance.now();
+    this.wokeWithoutReply = true;
     this.sendRaw(HEARTBEAT_PING);
     if (this.probeTimer) clearTimeout(this.probeTimer);
     this.probeTimer = setTimeout(() => {

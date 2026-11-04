@@ -287,6 +287,8 @@ export class RoomCore {
     if (this.flow) this.sendTo(conn, { t: 'match', m: this.matchSnapshot() });
     if (this.pause && this.pause.by === m.id && this.pause.resumeAt === null) {
       this.pause.resumeAt = this.now() + RESUME_COUNTDOWN_MS;
+      // Der Zurückkehrende kennt die Pause noch nicht → erst Pause, dann Countdown
+      this.sendTo(conn, this.pauseMessage());
       this.broadcast({ t: 'resume', at: this.pause.resumeAt });
     } else if (this.pause) {
       this.sendTo(conn, this.pauseMessage());

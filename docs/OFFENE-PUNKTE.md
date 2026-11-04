@@ -31,6 +31,15 @@ Solange 1–4 fehlen, laufen die Tests trotzdem bei jedem Push. Server und Spiel
     - Ein sauberer Lauf ohne Sniper dauert im Schnitt 30,8 s (Ziel waren ca. 30 s ✔).
 11. 🎮 **Wischgesten**: Werden Wischer zuverlässig erkannt? Ist „Halten = Ducken“ (nach 0,17 s) zu schnell oder zu langsam?
 
+## Online-Duell (M2 – sobald Teil 1–5 erledigt sind)
+
+12. 🎮 **Duell mit zwei iPhones** (am besten eins im WLAN, eins im Mobilfunk):
+    1. iPhone A: Menü → „🌐 Online-Duell per Link“ → „Link teilen“ → per WhatsApp an iPhone B schicken
+    2. iPhone B: Link antippen → Namen eingeben → beide tippen „Bereit!“
+    3. Ein komplettes Duell spielen (bis zum Sieger), dann „Revanche“
+    4. Mitten im Lauf auf einem iPhone kurz zu WhatsApp wechseln und zurück → das Spiel sollte pausieren („… ist kurz weg“) und nach 3 s weiterlaufen
+    5. Bitte sagen: Fühlt sich das Ausweichen fair an? Gibt es Treffer, die „unmöglich“ aussahen?
+
 ## Beobachtungen beim Balancing (zur Info, keine Antwort nötig)
 
 - Der Turm ist hoch, die Kugeln kommen deshalb recht flach. Fehler nach vorn oder hinten verzeiht das Spiel, Fehler zur Seite und in der Höhe kaum. Ausweichen per **Spurwechsel** ist für Läufer deshalb die wichtigste Verteidigung, neben Deckung. Ich finde das gut so. Falls dir Treffen zu leicht vorkommt, wären die Stellschrauben: Kugel langsamer machen oder mehr Wackeln im Zielfernrohr.

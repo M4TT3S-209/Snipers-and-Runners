@@ -51,6 +51,8 @@ import type { GameSession, GameView, MatchMeta, MyRole, PlayerInfo, RunnerView, 
 const HZ = CONFIG.sim.hz;
 const SYNC_MS = 1000;
 const INTERP_TICKS = (CONFIG.sim.interpDelayMs / 1000) * HZ;
+/** Höchstens so viele Ticks darf die eigene Vorhersage vor dem Server liegen */
+const MAX_LEAD_TICKS = 36;
 
 interface DecodedRunner {
   id: string;
@@ -248,8 +250,10 @@ export class RemoteSession implements GameSession {
     const m = this.match;
     if (!m || !this.clock.ready) return;
 
-    // Geschätzte Server-Ticks (weich nachgeführt)
-    const running = !this.paused || (this.paused.resumeAt !== null && this.clock.serverNow() >= this.paused.resumeAt);
+    // Geschätzte Server-Ticks (weich nachgeführt). Ohne lebendige Verbindung
+    // wissen wir nichts über den Server → nicht weiterrechnen.
+    const connected = this.socket.healthy();
+    const running = connected && (!this.paused || (this.paused.resumeAt !== null && this.clock.serverNow() >= this.paused.resumeAt));
     const elapsed = running ? ((this.clock.serverNow(nowMs) - this.anchor.st) * HZ) / 1000 : 0;
     const targetMatch = this.anchor.mt + Math.max(0, elapsed);
     const targetTurn = this.anchor.k + Math.max(0, elapsed);
@@ -259,7 +263,7 @@ export class RemoteSession implements GameSession {
 
     // Eigene Vorhersage vorlaufen lassen
     if (this.myMove && this.myRole() === 'runner' && m.phase === 'running' && running) {
-      const lead = ((this.clock.rtt / 2 + CONFIG.net.inputLeadBufferMs) / 1000) * HZ;
+      const lead = Math.min(MAX_LEAD_TICKS, ((this.clock.rtt / 2 + CONFIG.net.inputLeadBufferMs) / 1000) * HZ);
       const target = Math.floor(this.estTurn + lead);
       let guard = 0;
       while (this.predTick < target && guard++ < 30) {
@@ -510,7 +514,9 @@ export class RemoteSession implements GameSession {
       this.predTick = Math.max(this.predTick, k);
       return;
     }
-    this.inputLog = this.inputLog.filter((i) => i.tick >= k);
+    // Nie weiter als MAX_LEAD vor dem Server vorhersagen (z. B. nach Funkloch)
+    if (this.predTick > k + MAX_LEAD_TICKS) this.predTick = k + MAX_LEAD_TICKS;
+    this.inputLog = this.inputLog.filter((i) => i.tick >= k && i.tick <= this.predTick);
     for (let t = k; t < this.predTick; t++) {
       const ctx = this.ctx(t);
       for (const i of this.inputLog) {
