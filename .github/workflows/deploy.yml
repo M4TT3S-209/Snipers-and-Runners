@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -43,7 +43,7 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
     steps:
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
@@ -96,7 +96,7 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
           fi
       - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
       - uses: actions/setup-node@v5
         with:
           node-version: 22
