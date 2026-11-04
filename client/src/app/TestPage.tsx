@@ -196,9 +196,7 @@ function ServerStatus(s: ReturnType<typeof useServerTest>) {
         <span class={`dot ${cls}`} />
         <span class={cls}>{text}</span>
       </span>
-      {s.status === 'open' && s.boots !== null && s.connections !== null && (
-        <small class="muted">{T.server.details(s.boots, s.connections)}</small>
-      )}
+      {s.status === 'open' && s.serverBuild && <small class="muted">Server {s.serverBuild}</small>}
       {s.lag && <small class="warn">{T.server.lagActive(s.lag.lag, s.lag.jitter)}</small>}
     </span>
   );

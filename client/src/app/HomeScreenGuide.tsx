@@ -1,3 +1,4 @@
+import { useEffect } from 'preact/hooks';
 import { T } from '../i18n/de';
 
 const STORAGE_KEY = 'rvs.a2hs.dismissed';
@@ -12,7 +13,8 @@ export function shouldAutoShowGuide(ios: boolean, standalone: boolean): boolean 
   }
 }
 
-export function HomeScreenGuide({ onClose }: { onClose: () => void }) {
+export function HomeScreenGuide({ onClose, onShow }: { onClose: () => void; onShow?: () => void }) {
+  useEffect(() => onShow?.(), []);
   const dismissForever = () => {
     try {
       localStorage.setItem(STORAGE_KEY, '1');

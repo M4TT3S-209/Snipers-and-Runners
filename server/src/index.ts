@@ -61,6 +61,7 @@ export default {
         return stub.fetch(request);
       }
 
+
       const roomId = url.pathname.slice('/room/'.length);
       if (!CONFIG_SERVER.roomIdPattern.test(roomId)) {
         return new Response('Ungültige Raum-ID', { status: 400 });

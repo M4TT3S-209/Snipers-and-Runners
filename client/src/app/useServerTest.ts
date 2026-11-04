@@ -34,10 +34,13 @@ export function useServerTest(): ServerTestState {
       lag,
       onStatus: setStatus,
       onUpdateRequired: markUpdateAvailable,
-      onOpen: () => socket.send({ t: 'echo', c: performance.now() }),
+      onOpen: () => {
+        socket.send({ t: 'hello', v: PROTOCOL_VERSION });
+        socket.send({ t: 'echo', c: performance.now() });
+      },
       onMessage: (msg: ServerMessage) => {
-        if (msg.t === 'welcome') {
-          setInfo({ boots: msg.boots, connections: msg.connections, build: msg.server });
+        if (msg.t === 'needAccount' || msg.t === 'welcome') {
+          setInfo({ boots: 0, connections: 0, build: msg.server });
           if (msg.protocol !== PROTOCOL_VERSION) markUpdateAvailable();
         } else if (msg.t === 'echo') {
           const rtt = performance.now() - msg.c;

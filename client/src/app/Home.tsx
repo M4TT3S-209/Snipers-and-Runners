@@ -1,25 +1,36 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
+import { formatTag, type AccountInfo } from '@scope-rush/shared';
 import { T } from '../i18n/de';
 import { playClick, unlockAudio } from '../audio/synth';
 import type { LocalMode } from '../game/LocalSession';
 import { getSettings, updateSettings, type BotLevelSetting } from './settings';
 
 export interface HomeProps {
+  account: AccountInfo | null;
+  /** Wer lädt ein (Einladungslink geöffnet)? */
+  inviter: AccountInfo | null;
+  onNameChosen: (name: string) => void;
+  onInviteAppHint: () => void;
   onStart: (mode: LocalMode) => void;
   onSettings: () => void;
+  friends: { online: number; requests: number; onClick: () => void } | null;
   online: { label: string; sub: string; onClick: (() => void) | null } | null;
 }
 
 const LEVELS: BotLevelSetting[] = ['easy', 'medium', 'hard'];
 
-export function Home({ onStart, onSettings, online }: HomeProps) {
+export function Home({ account, inviter, onNameChosen, onInviteAppHint, onStart, onSettings, friends, online }: HomeProps) {
   const [settings, setSettingsState] = useState(getSettings());
   const [name, setName] = useState(settings.name);
+
+  useEffect(() => {
+    if (inviter && !settings.name) onInviteAppHint();
+  }, [inviter?.id]);
 
   const saveName = () => {
     const trimmed = name.trim().slice(0, 14);
     if (trimmed.length < 2) return;
-    updateSettings({ name: trimmed });
+    onNameChosen(trimmed);
     setSettingsState(getSettings());
   };
 
@@ -45,7 +56,8 @@ export function Home({ onStart, onSettings, online }: HomeProps) {
               saveName();
             }}
           >
-            <label>{T.home.namePrompt}</label>
+            {inviter && <h2 class="invite-title">{T.account.inviteTitle(formatTag(inviter))}</h2>}
+            <label>{inviter ? T.account.inviteNoAccount : T.home.namePrompt}</label>
             <input
               value={name}
               maxLength={14}
@@ -57,19 +69,29 @@ export function Home({ onStart, onSettings, online }: HomeProps) {
             <button class="btn primary" type="submit" disabled={name.trim().length < 2}>
               {T.home.nameOk}
             </button>
+            {inviter && <small class="muted center">{T.account.inviteAppHint}</small>}
           </form>
         ) : (
           <>
             <div class="home-greeting">
-              <span>{T.home.greeting(settings.name)}</span>
+              <span>{account ? formatTag(account) : T.home.greeting(settings.name)}</span>
               <button class="btn small ghost" onClick={onSettings}>
                 {T.home.settings}
               </button>
             </div>
 
+            {friends && (
+              <button class="btn big-btn primary" onClick={friends.onClick}>
+                <span>
+                  {T.friends.button}
+                  {friends.requests > 0 && <span class="badge-count">{friends.requests}</span>}
+                </span>
+                <small>{friends.online > 0 ? `${friends.online} online` : T.friends.partySub}</small>
+              </button>
+            )}
             {online && (
               <button
-                class={`btn big-btn ${online.onClick ? 'primary' : ''}`}
+                class={`btn big-btn ${online.onClick && !friends ? 'primary' : ''}`}
                 disabled={!online.onClick}
                 onClick={() => {
                   unlockAudio();

@@ -73,7 +73,7 @@ Versionen (bewusst gewählt):
 - [x] M0 Grundgerüst + Deploy-Pipeline + Testseite (Code fertig, lokal getestet). Wartet auf die Einrichtung durch den Nutzer (SETUP.md) und den iPhone-Test.
 - [x] M1 Offline-Prototyp gegen Bots (Duell Best of 3, Übung Läufer/Sniper, Klassik mit Bots, alle Waffen/Gadgets, 5 Themen, Debug-Regler). Wartet auf das iPhone-Feedback des Nutzers (docs/OFFENE-PUNKTE.md).
 - [x] M2 Online-1v1 per Raum-Link (RoomCore + RoomDO, RemoteSession mit Vorhersage/Interpolation/Lag-Komp., Pause bei App-Wechsel, Revanche). Lokal mit 2 Browsern + 150 ms Lag getestet. Wartet auf Test mit 2 iPhones.
-- [ ] M3 Konten, Freunde, Herausforderungen, Party-Lobby
+- [x] M3 Konten (Name#Tag, Geräte-Tokens, Cookie, Kopplung, Übertragungscode/QR), Freunde (Link/QR/Name#Tag), Status, Herausforderung mit Pop-up + Posteingang, Party-Lobby mit Einladungen, Statistik. Lokal mit 2 Browsern getestet.
 - [ ] M4 Waffen/Gadgets, Streckengenerator, Klassik
 - [ ] M5 Feinschliff, Trophäen, Statistiken, Tutorial
 - [ ] M6 (optional) Web-Push
@@ -95,7 +95,10 @@ Versionen (bewusst gewählt):
 - Echtzeit-Schleife: alle 50 ms so viele Sim-Ticks rechnen, wie seit `baseTime` vergangen sind (max. 12), Zustände mit 20 Hz.
 - Pause: Spieler weg (Socket zu oder 4 s keine Nachricht) → Pause mit Schonfrist (`CONFIG.net.graceS`), Rückkehr mit gleichem Raum-Schlüssel (localStorage `rvs.room.<id>`) → 3-s-Countdown.
 - Client-Vorhersage höchstens `MAX_LEAD_TICKS` vor dem Server; ohne lebendige Verbindung (`socket.healthy()`) wird nicht weitergerechnet.
-- Im Dev-Modus ist `window.__host` für Browser-Tests verfügbar.
+- Im Dev-Modus sind `window.__host` und `window.__hub` für Browser-Tests verfügbar.
+- Hub-Logik in `server/src/hub/HubCore.ts` (SQL-Schnittstelle, in Tests `node:sqlite`), `HubDO` ist Adapter. Mehrere Geräte-Tokens pro Konto (Tabelle `tokens`), nur SHA-256-Hashes gespeichert.
+- Hub ↔ Room per DO-RPC: `room.configure()` (Herausforderung/Party), `hub.authenticate()`, `hub.setInMatch()`, `hub.reportMatch()`.
+- Server-Tests haben eine eigene `server/test/tsconfig.json` (Node-Typen), der Server-Code nutzt Worker-Typen.
 
 ## Entscheidungen und Erkenntnisse (laufend ergänzen)
 - iOS kopiert beim „Zum Home-Bildschirm“ (ab 17.2) nur **Cookies** aus Safari, nicht localStorage. Darum liegt das Konto-Token in beiden. Fallback ist die Netzwerk-Kopplung (gleiche IP, 10 min, Bestätigung per Tipp), danach der Übertragungscode.

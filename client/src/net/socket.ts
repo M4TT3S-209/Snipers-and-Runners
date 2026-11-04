@@ -20,6 +20,8 @@ export interface SocketOptions<In> {
   onOpen?: () => void;
   onUpdateRequired?: () => void;
   lag?: LagSettings | null;
+  /** Nachrichten, die vor dem Verbinden gesendet werden, aufheben und nachschicken (Hub ja, Spiel-Eingaben nein) */
+  queueWhileClosed?: boolean;
 }
 
 const PROBE_TIMEOUT_MS = 2500;
@@ -35,6 +37,7 @@ export class ReconnectingSocket<In = ServerMessage, Out = ClientMessage> {
   private stopped = true;
   private status: SocketStatus = 'connecting';
   private readonly sendQueue: LagQueue | null;
+  private outbox: string[] = [];
   private readonly recvQueue: LagQueue | null;
 
   constructor(private readonly opts: SocketOptions<In>) {
@@ -85,6 +88,10 @@ export class ReconnectingSocket<In = ServerMessage, Out = ClientMessage> {
   // ---------------------------------------------------------------------------
 
   private sendRaw(data: string): void {
+    if (this.opts.queueWhileClosed && this.ws?.readyState !== WebSocket.OPEN && data !== HEARTBEAT_PING) {
+      if (this.outbox.length < 20) this.outbox.push(data);
+      return;
+    }
     const doSend = () => {
       if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(data);
     };
@@ -119,6 +126,9 @@ export class ReconnectingSocket<In = ServerMessage, Out = ClientMessage> {
       this.setStatus('open');
       this.startHeartbeat();
       this.opts.onOpen?.();
+      const queued = this.outbox;
+      this.outbox = [];
+      for (const d of queued) this.sendRaw(d);
     };
 
     ws.onmessage = (event) => {

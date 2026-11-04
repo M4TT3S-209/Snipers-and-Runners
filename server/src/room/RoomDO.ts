@@ -2,6 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import { HEARTBEAT_PING, HEARTBEAT_PONG } from '@scope-rush/shared';
 import type { Env } from '../env';
 import { RoomCore, type Conn, type MatchSummary, type RoomPersist } from './RoomCore';
+import type { RoomSetup } from '../hub/HubCore';
 
 /**
  * RoomDO – ein Objekt pro Duell bzw. Party.
@@ -52,7 +53,26 @@ export class RoomDO extends DurableObject<Env> {
       onEmpty: () => {
         void this.ctx.storage.setAlarm(Date.now() + EMPTY_CLEANUP_MS);
       },
+      authenticate: (token) => this.hub().authenticate(token),
+      onInMatch: (ids, inMatch) => {
+        void this.hub()
+          .setInMatch(ids, inMatch)
+          .catch(() => undefined);
+      },
     });
+  }
+
+  private hub() {
+    return this.env.HUB.get(this.env.HUB.idFromName('global'));
+  }
+
+  /** RPC vom Hub: Raum für Herausforderung/Party vorbereiten */
+  async configure(roomId: string, setup: RoomSetup): Promise<void> {
+    if (!this.core.roomId) {
+      this.core.roomId = roomId;
+      await this.ctx.storage.put('roomId', roomId);
+    }
+    this.core.configure(setup);
   }
 
   override async fetch(request: Request): Promise<Response> {
@@ -76,7 +96,7 @@ export class RoomDO extends DurableObject<Env> {
   override async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
     const conn = this.connFor(ws);
     const before = conn.memberId;
-    this.core.handle(conn, message);
+    await this.core.handle(conn, message);
     if (conn.memberId !== before) ws.serializeAttachment({ memberId: conn.memberId } satisfies Attachment);
     this.ensureLoop();
   }
@@ -135,7 +155,7 @@ export class RoomDO extends DurableObject<Env> {
 
   private reportMatch(summary: MatchSummary): void {
     // Ab M3: Ergebnis an den Hub (Statistik, Trophäen)
-    void this.env.HUB.get(this.env.HUB.idFromName('global'))
+    void this.hub()
       .reportMatch(summary)
       .catch(() => undefined);
   }

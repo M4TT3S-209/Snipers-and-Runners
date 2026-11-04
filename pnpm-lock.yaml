@@ -26,6 +26,9 @@ importers:
       preact:
         specifier: 11.1.1
         version: 11.1.1
+      qrcode-generator:
+        specifier: 2.0.4
+        version: 2.0.4
       three:
         specifier: 0.187.0
         version: 0.187.0
@@ -46,6 +49,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: 5.20261103.1
         version: 5.20261103.1
+      '@types/node':
+        specifier: ^22.19.0
+        version: 22.20.5
       wrangler:
         specifier: 4.157.0
         version: 4.157.0(@cloudflare/workers-types@5.20261103.1)(@types/node@22.20.5)
@@ -889,6 +895,9 @@ packages:
       preact-render-to-string:
         optional: true
 
+  qrcode-generator@2.0.4:
+    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
+
   rolldown@1.2.16:
     resolution: {integrity: sha512-bWvlMpFKiTfDKfnK7FC2MPgPeWCf/Kpwsq49ApdW+FQaBZb6O6dZ4MAPbPUjp7hYQrw/RobqCzn64BRrQecGHw==}
     engines: {node: ^20.19.0 || >=22.12.0}
@@ -1662,6 +1671,8 @@ snapshots:
       source-map-js: 1.2.2
 
   preact@11.1.1: {}
+
+  qrcode-generator@2.0.4: {}
 
   rolldown@1.2.16:
     dependencies:

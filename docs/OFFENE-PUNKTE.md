@@ -40,6 +40,14 @@ Solange 1–4 fehlen, laufen die Tests trotzdem bei jedem Push. Server und Spiel
     4. Mitten im Lauf auf einem iPhone kurz zu WhatsApp wechseln und zurück → das Spiel sollte pausieren („… ist kurz weg“) und nach 3 s weiterlaufen
     5. Bitte sagen: Fühlt sich das Ausweichen fair an? Gibt es Treffer, die „unmöglich“ aussahen?
 
+## Freunde & Herausforderungen (M3)
+
+13. 🎮 **Freund hinzufügen ohne Code-Eintippen**: Freunde → „Einladungslink teilen“ → per WhatsApp an einen Freund. Er tippt drauf, wählt einen Namen, und ihr seid befreundet. Alternativ den QR-Code zeigen und mit der iPhone-Kamera scannen lassen.
+14. 🎮 **Home-Bildschirm nach dem Einladungslink**: Nach dem Namen erscheint die Anleitung „Zum Home-Bildschirm“. Danach sollte die App **ohne** erneute Namenswahl starten (Cookie-Übernahme von iOS). Falls doch nach dem Namen gefragt wird, sollte stattdessen „Bist du …?“ erscheinen (Netzwerk-Kopplung). Bitte sag mir, was bei dir passiert ist. Das ist die wichtigste iOS-Unbekannte.
+15. 🎮 **Herausfordern**: In der Freundesliste auf ⚔️ tippen. Beim Freund erscheint ein Pop-up mit 30-Sekunden-Balken. Ist er offline, wartet die Herausforderung 5 Minuten.
+16. 🎮 **Party**: Freunde → „Party erstellen“ → Freunde einladen → Gastgeber wählt Modus „Klassik“ → ab 3 Spielern auf „Bereit“.
+17. ❓ **Datenschutz-Hinweis**: Für die Netzwerk-Kopplung speichert der Server deine IP-Adresse 10 Minuten lang als verschlüsselten Fingerabdruck (nicht lesbar). Ist das für euch okay? Sonst lasse ich die Kopplung weg, dann bleiben nur Cookie und Übertragungscode.
+
 ## Beobachtungen beim Balancing (zur Info, keine Antwort nötig)
 
 - Der Turm ist hoch, die Kugeln kommen deshalb recht flach. Fehler nach vorn oder hinten verzeiht das Spiel, Fehler zur Seite und in der Höhe kaum. Ausweichen per **Spurwechsel** ist für Läufer deshalb die wichtigste Verteidigung, neben Deckung. Ich finde das gut so. Falls dir Treffen zu leicht vorkommt, wären die Stellschrauben: Kugel langsamer machen oder mehr Wackeln im Zielfernrohr.

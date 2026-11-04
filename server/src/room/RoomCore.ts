@@ -1,3 +1,5 @@
+import type { AccountInfo } from '@scope-rush/shared';
+import type { RoomSetup } from '../hub/HubCore';
 import {
   CONFIG,
   MatchFlow,
@@ -40,6 +42,8 @@ export interface Conn {
 
 interface Member {
   id: string;
+  /** Konto (null = Gast über Raum-Link) */
+  accountId: string | null;
   key: string;
   name: string;
   color: number;
@@ -52,11 +56,13 @@ export interface RoomPersist {
   members: Array<Omit<Member, 'conn'>>;
   hostId: string | null;
   mode: MatchMode;
+  expected?: string[];
+  auto?: boolean;
 }
 
 export interface MatchSummary {
   mode: MatchMode;
-  players: Array<{ id: string; name: string; key: string }>;
+  players: Array<{ id: string; name: string; key: string; accountId: string | null }>;
   winnerId: string | null;
   draw: boolean;
   roundWins: Record<string, number>;
@@ -68,6 +74,10 @@ export interface RoomHooks {
   persist?(p: RoomPersist): void;
   onMatchEnd?(s: MatchSummary): void;
   onEmpty?(): void;
+  /** Konto-Token prüfen (beim Hub) */
+  authenticate?(token: string): Promise<AccountInfo | null>;
+  /** Konten sind jetzt im Match / nicht mehr (für den Online-Status) */
+  onInMatch?(accountIds: string[], inMatch: boolean): void;
 }
 
 const TICK_MS = 1000 / CONFIG.sim.hz;
@@ -90,6 +100,9 @@ export class RoomCore {
   private readonly rematchVotes = new Set<string>();
   private lastLightState = 0;
   private reported = false;
+  /** Vom Hub vorgegeben (Herausforderung/Party) */
+  private expected: string[] = [];
+  private auto = false;
 
   constructor(
     public roomId: string,
@@ -99,9 +112,21 @@ export class RoomCore {
 
   restore(p: RoomPersist): void {
     this.members.clear();
-    for (const m of p.members) this.members.set(m.id, { ...m, conn: null });
+    for (const m of p.members) this.members.set(m.id, { ...m, accountId: m.accountId ?? null, conn: null });
     this.hostId = p.hostId;
     this.mode = p.mode;
+    this.expected = p.expected ?? [];
+    this.auto = p.auto ?? false;
+  }
+
+  /** Vom Hub: Modus, erwartete Spieler, Autostart */
+  configure(setup: RoomSetup): void {
+    if (this.flow && this.flow.phase !== 'matchResult') return;
+    this.mode = setup.mode;
+    this.expected = setup.expected;
+    this.auto = setup.auto;
+    if (setup.hostId) this.hostId = setup.hostId;
+    this.persist();
   }
 
   /** Läuft gerade etwas, das die Schleife (alle 50 ms) braucht? */
@@ -122,7 +147,7 @@ export class RoomCore {
     if ([...this.members.values()].every((x) => !x.conn)) this.hooks.onEmpty?.();
   }
 
-  handle(conn: Conn, raw: unknown): void {
+  handle(conn: Conn, raw: unknown): void | Promise<void> {
     const now = this.now();
     const { allowed, state } = takeToken(conn.bucket ?? { tokens: RATE_BURST, last: now }, now, RATE_BURST, RATE_PER_S);
     conn.bucket = state;
@@ -138,7 +163,11 @@ export class RoomCore {
     conn.lastSeen = now;
 
     if (msg.t === 'join') {
-      this.join(conn, msg.name, msg.key, msg.spectate ?? false);
+      if (msg.token && this.hooks.authenticate) {
+        const spectate = msg.spectate ?? false;
+        return this.hooks.authenticate(msg.token).then((account) => this.join(conn, msg.name, msg.key, spectate, account));
+      }
+      this.join(conn, msg.name, msg.key, msg.spectate ?? false, null);
       return;
     }
     if (msg.t === 'sync') {
@@ -254,13 +283,15 @@ export class RoomCore {
 
   // ------------------------------------------------------------------ intern
 
-  private join(conn: Conn, rawName: string, key: string, spectate: boolean): void {
-    const check = checkName(rawName);
+  private join(conn: Conn, rawName: string, key: string, spectate: boolean, account: AccountInfo | null): void {
+    const check = account ? ({ ok: true, name: account.name } as const) : checkName(rawName);
     if (!check.ok) {
       this.sendTo(conn, { t: 'error', code: 'bad_name' });
       return;
     }
-    let m = [...this.members.values()].find((x) => x.key === key);
+    let m = account
+      ? this.members.get(account.id)
+      : [...this.members.values()].find((x) => x.key === key && !x.accountId);
     if (m) {
       if (m.conn && m.conn !== conn) {
         this.sendTo(m.conn, { t: 'bye', reason: 'replaced' });
@@ -275,8 +306,9 @@ export class RoomCore {
       }
       const players = [...this.members.values()].filter((x) => x.seat === 'player').length;
       const matchRunning = this.flow !== null && this.flow.phase !== 'matchResult';
-      const seat = !spectate && !matchRunning && players < this.maxPlayers() ? 'player' : 'spectator';
-      m = { id: randomId(8), key, name: check.name, color: this.freeColor(), seat, ready: false, conn };
+      const expectedPlayer = account !== null && this.expected.includes(account.id);
+      const seat = !spectate && !matchRunning && (players < this.maxPlayers() || expectedPlayer) ? 'player' : 'spectator';
+      m = { id: account?.id ?? randomId(8), accountId: account?.id ?? null, key, name: check.name, color: this.freeColor(), seat, ready: false, conn };
       this.members.set(m.id, m);
       if (!this.hostId || !this.members.has(this.hostId)) this.hostId = m.id;
     }
@@ -292,6 +324,14 @@ export class RoomCore {
       this.broadcast({ t: 'resume', at: this.pause.resumeAt });
     } else if (this.pause) {
       this.sendTo(conn, this.pauseMessage());
+    }
+    // Herausforderung: Sobald alle Erwarteten da sind, geht es los
+    if (this.auto && !this.flow && this.expected.length > 0) {
+      const all = this.expected.every((id) => this.members.get(id)?.conn);
+      if (all) {
+        for (const id of this.expected) this.members.get(id)!.ready = true;
+        this.maybeStart();
+      }
     }
   }
 
@@ -384,9 +424,12 @@ export class RoomCore {
     this.baseTime = this.now();
     this.baseTick = 0;
     this.flow.drainEvents();
+    this.auto = false;
     this.persist();
     this.broadcastRoom();
     this.broadcastMatch();
+    const accounts = players.map((p) => p.accountId).filter((x): x is string => !!x);
+    if (accounts.length > 0) this.hooks.onInMatch?.(accounts, true);
   }
 
   private drainAndBroadcast(): void {
@@ -408,7 +451,12 @@ export class RoomCore {
       this.reported = true;
       this.hooks.onMatchEnd?.({
         mode: flow.mode,
-        players: flow.players.map((p) => ({ id: p.id, name: p.name, key: this.members.get(p.id)?.key ?? '' })),
+        players: flow.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          key: this.members.get(p.id)?.key ?? '',
+          accountId: this.members.get(p.id)?.accountId ?? null,
+        })),
         winnerId: flow.winnerId,
         draw: flow.draw,
         roundWins: Object.fromEntries(flow.roundWins),
@@ -529,6 +577,8 @@ export class RoomCore {
       members: [...this.members.values()].map(({ conn: _c, ...rest }) => rest),
       hostId: this.hostId,
       mode: this.mode,
+      expected: this.expected,
+      auto: this.auto,
     });
   }
 }

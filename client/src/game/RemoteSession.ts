@@ -77,6 +77,8 @@ export interface RemoteOptions {
   serverUrl: string;
   roomId: string;
   name: string;
+  /** Konto-Token (sonst Gast) */
+  token?: string | null;
   lag?: LagSettings | null;
 }
 
@@ -135,7 +137,7 @@ export class RemoteSession implements GameSession {
       },
       onUpdateRequired: markUpdateAvailable,
       onOpen: () => {
-        this.send({ t: 'join', name: opts.name, key: this.key });
+        this.send(opts.token ? { t: 'join', name: opts.name, key: this.key, token: opts.token } : { t: 'join', name: opts.name, key: this.key });
         this.sendSync();
       },
       onMessage: (m) => this.onMessage(m),
@@ -153,6 +155,11 @@ export class RemoteSession implements GameSession {
 
   setReady(ready: boolean): void {
     this.send({ t: 'ready', ready });
+  }
+
+  /** Nur Gastgeber: Spielmodus der Party */
+  setMode(mode: 'duel' | 'classic'): void {
+    this.send({ t: 'mode', mode });
   }
 
   claimWin(): void {

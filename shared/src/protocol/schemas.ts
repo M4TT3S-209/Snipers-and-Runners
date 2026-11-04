@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import type { ClientMessage } from './messages';
 import type { RoomClientMessage } from './room';
+import type { HubClientMessage } from './hub';
 
 /**
  * zod-Schemas für alle Nachrichten Client → Server.
@@ -10,17 +10,7 @@ import type { RoomClientMessage } from './room';
 /** Maximale Größe einer Nachricht in Zeichen. */
 export const MAX_MESSAGE_CHARS = 4096;
 
-const ClientEchoSchema = z.object({
-  t: z.literal('echo'),
-  c: z.number().finite(),
-});
-
-export const ClientMessageSchema = z.discriminatedUnion('t', [ClientEchoSchema]);
-
-// Sicherstellen, dass Schema und Typ zusammenpassen (Fehler beim Typecheck, falls nicht).
 type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
-const _hubCheck: Same<z.infer<typeof ClientMessageSchema>, ClientMessage> = true;
-void _hubCheck;
 
 function parseJson(raw: unknown): unknown {
   if (typeof raw !== 'string' || raw.length > MAX_MESSAGE_CHARS) return undefined;
@@ -29,15 +19,6 @@ function parseJson(raw: unknown): unknown {
   } catch {
     return undefined;
   }
-}
-
-/**
- * Liest eine rohe WebSocket-Nachricht sicher ein.
- * Gibt `null` zurück, wenn sie zu groß, kein gültiges JSON oder ungültig ist.
- */
-export function parseClientMessage(raw: unknown): ClientMessage | null {
-  const result = ClientMessageSchema.safeParse(parseJson(raw));
-  return result.success ? result.data : null;
 }
 
 // ---------------------------------------------------------------- Raum
@@ -79,3 +60,45 @@ export function parseRoomMessage(raw: unknown): RoomClientMessage | null {
   const result = RoomClientSchema.safeParse(parseJson(raw));
   return result.success ? (result.data as RoomClientMessage) : null;
 }
+
+// ---------------------------------------------------------------- Hub
+
+const id = z.string().regex(/^[a-z0-9]{6,16}$/);
+const token = z.string().regex(/^[A-Za-z0-9_-]{20,80}$/);
+const name = z.string().min(1).max(40);
+
+export const HubClientSchema = z.discriminatedUnion('t', [
+  z.object({ t: z.literal('hello'), v: num.int(), token: token.optional() }),
+  z.object({ t: z.literal('createAccount'), name, invite: token.optional() }),
+  z.object({ t: z.literal('rename'), name }),
+  z.object({ t: z.literal('transferCreate') }),
+  z.object({ t: z.literal('transferRedeem'), code: z.string().min(4).max(20) }),
+  z.object({ t: z.literal('pairingOffer'), kind: z.enum(['account', 'invite']), invite: token.optional() }),
+  z.object({ t: z.literal('pairingCheck') }),
+  z.object({ t: z.literal('pairingAccept'), id }),
+  z.object({ t: z.literal('inviteCreate') }),
+  z.object({ t: z.literal('inviteInfo'), token }),
+  z.object({ t: z.literal('inviteRedeem'), token }),
+  z.object({ t: z.literal('friendSearch'), name, tag: num.int().min(0).max(9999) }),
+  z.object({ t: z.literal('friendRespond'), id, accept: z.boolean() }),
+  z.object({ t: z.literal('friendRemove'), id }),
+  z.object({ t: z.literal('challenge'), friendId: id }),
+  z.object({ t: z.literal('challengeRespond'), id, accept: z.boolean() }),
+  z.object({ t: z.literal('challengeCancel'), id }),
+  z.object({ t: z.literal('partyCreate') }),
+  z.object({ t: z.literal('partyInvite'), friendId: id, roomId: id }),
+  z.object({ t: z.literal('partyRespond'), id, accept: z.boolean() }),
+  z.object({ t: z.literal('stats') }),
+  z.object({ t: z.literal('echo'), c: num }),
+]);
+
+const _hubMsgCheck: Same<z.infer<typeof HubClientSchema>['t'], HubClientMessage['t']> = true;
+void _hubMsgCheck;
+
+export function parseHubMessage(raw: unknown): HubClientMessage | null {
+  const result = HubClientSchema.safeParse(parseJson(raw));
+  return result.success ? (result.data as HubClientMessage) : null;
+}
+
+/** Liest eine rohe Hub-Nachricht sicher ein (null bei Fehlern). */
+export const parseClientMessage = parseHubMessage;
