@@ -29,7 +29,7 @@ export function useServerTest(): ServerTestState {
   useEffect(() => {
     if (!serverUrl) return;
     let smoothed: number | null = null;
-    const socket = new ReconnectingSocket({
+    const socket: ReconnectingSocket = new ReconnectingSocket({
       url: () => toWebSocketUrl(serverUrl, `/hub?v=${PROTOCOL_VERSION}`),
       lag,
       onStatus: setStatus,

@@ -21,3 +21,5 @@ export * from './rules/match';
 export { RunnerBot } from './bots/runnerBot';
 export { SniperBot, type SniperBotOutput } from './bots/sniperBot';
 export { BotDriver, ALL_WEAPONS, ALL_GADGETS } from './bots/driver';
+export * from './protocol/room';
+export { checkName, type NameCheck } from './names';

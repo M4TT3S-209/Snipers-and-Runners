@@ -7,7 +7,7 @@ import { getSettings, updateSettings, type BotLevelSetting } from './settings';
 export interface HomeProps {
   onStart: (mode: LocalMode) => void;
   onSettings: () => void;
-  online: { label: string; onClick: () => void } | null;
+  online: { label: string; sub: string; onClick: (() => void) | null } | null;
 }
 
 const LEVELS: BotLevelSetting[] = ['easy', 'medium', 'hard'];
@@ -68,8 +68,16 @@ export function Home({ onStart, onSettings, online }: HomeProps) {
             </div>
 
             {online && (
-              <button class="btn primary big-btn" onClick={online.onClick}>
-                {online.label}
+              <button
+                class={`btn big-btn ${online.onClick ? 'primary' : ''}`}
+                disabled={!online.onClick}
+                onClick={() => {
+                  unlockAudio();
+                  online.onClick?.();
+                }}
+              >
+                <span>{online.label}</span>
+                {online.sub && <small>{online.sub}</small>}
               </button>
             )}
 

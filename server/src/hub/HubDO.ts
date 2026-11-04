@@ -5,6 +5,7 @@ import type { ServerMessage } from '@scope-rush/shared';
 import { parseClientMessage } from '@scope-rush/shared/schemas';
 import type { Env } from '../env';
 import { takeToken, type BucketState } from '../util/rateLimit';
+import type { MatchSummary } from '../room/RoomCore';
 
 /**
  * HubDO – genau eine Instanz („global“).
@@ -77,6 +78,11 @@ export class HubDO extends DurableObject<Env> {
         this.send(ws, { t: 'echo', c: msg.c, s: now });
         break;
     }
+  }
+
+  /** Vom RoomDO aufgerufen (DO-RPC), wenn ein Match endet. Statistik ab M3. */
+  async reportMatch(summary: MatchSummary): Promise<void> {
+    void summary;
   }
 
   override async webSocketClose(ws: WebSocket, code: number): Promise<void> {

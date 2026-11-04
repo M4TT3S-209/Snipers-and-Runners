@@ -8,6 +8,7 @@ import { Hearts } from './hud/Hearts';
 import { useHud } from './hud/useHud';
 import { getSettings } from './settings';
 import { DebugPanel } from './DebugPanel';
+import { RemoteSession } from '../game/RemoteSession';
 
 const WEAPONS: WeaponId[] = ['precision', 'semi', 'rocket'];
 const GADGETS: Array<GadgetId | null> = [null, 'smoke', 'shield', 'sprint', 'decoy'];
@@ -45,7 +46,8 @@ export function GameScreen({ host, onExit, debug }: { host: GameHost; onExit: ()
       {view && role === 'runner' && view.phase === 'running' && isOut(view) && view.snipers[0] && (
         <div class="banner info center-top">{T.game.spectating(view.snipers[0].name)}</div>
       )}
-      {view && meta && <PhaseOverlay view={view} meta={meta} host={host} onExit={onExit} />}
+      {view && meta && !meta.paused && <PhaseOverlay view={view} meta={meta} host={host} onExit={onExit} />}
+      <OnlineOverlay host={host} meta={meta} />
 
       <button class="btn menu-btn" aria-label={T.game.leave} onClick={() => setConfirmLeave(true)}>
         ≡
@@ -77,6 +79,40 @@ function isOut(view: GameView): boolean {
 function nameOf(meta: MatchMeta, id: string): string {
   if (id === meta.myId) return T.game.you;
   return meta.players.find((p) => p.id === id)?.name ?? id;
+}
+
+// ----------------------------------------------------------------- Online: Pause & Verbindung
+
+function OnlineOverlay({ host, meta }: { host: GameHost; meta: MatchMeta | null }) {
+  const session = host.getSession();
+  if (!(session instanceof RemoteSession) || !meta) return null;
+  const pause = session.pauseInfo;
+  if (session.status !== 'open' && !pause) return <div class="banner danger center-top">📶 {T.room.reconnecting}</div>;
+  if (!pause) return null;
+  const name = nameOf(meta, pause.by);
+  if (pause.resumeInS !== null) return <div class="countdown">{T.room.resumeIn(Math.max(1, Math.ceil(pause.resumeInS)))}</div>;
+  const iAmAway = pause.by === meta.myId;
+  return (
+    <div class="sheet-overlay">
+      <div class="card result">
+        <h2>{iAmAway ? T.room.reconnecting : T.room.pausedTitle(name)}</h2>
+        {!pause.canClaim && <p class="center">{T.room.pausedWait(Math.ceil(pause.leftS))}</p>}
+        {pause.canClaim && !iAmAway && (
+          <>
+            <p class="center">{T.room.pausedClaim}</p>
+            <div class="modal-actions">
+              <button class="btn primary" onClick={() => session.keepWaiting()}>
+                {T.room.keepWaiting}
+              </button>
+              <button class="btn" onClick={() => session.claimWin()}>
+                {T.room.claimWin}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
 }
 
 // ----------------------------------------------------------------- Kopfzeile

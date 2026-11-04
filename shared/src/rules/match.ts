@@ -136,6 +136,18 @@ export class MatchFlow {
     }
   }
 
+  /** Aufgabe/Abbruch: Der andere Spieler gewinnt kampflos. */
+  forfeit(loserId: string): void {
+    if (this.phase === 'matchResult') return;
+    const winner = this.players.find((p) => p.id !== loserId);
+    this.paused = false;
+    this.winnerId = winner?.id ?? null;
+    this.draw = this.winnerId === null;
+    this.turn = null;
+    this.enter('matchResult', 0);
+    this.events.push({ t: 'matchEnd', winnerId: this.winnerId, draw: this.draw });
+  }
+
   /** Ein Tick. */
   step(): void {
     if (this.paused || this.phase === 'matchResult') return;

@@ -13,9 +13,9 @@ import { LagQueue, type LagSettings } from './lagSim';
  */
 export type SocketStatus = 'connecting' | 'open' | 'reconnecting' | 'update';
 
-export interface SocketOptions {
+export interface SocketOptions<In> {
   url: () => string;
-  onMessage: (msg: ServerMessage) => void;
+  onMessage: (msg: In) => void;
   onStatus?: (status: SocketStatus) => void;
   onOpen?: () => void;
   onUpdateRequired?: () => void;
@@ -24,7 +24,7 @@ export interface SocketOptions {
 
 const PROBE_TIMEOUT_MS = 2500;
 
-export class ReconnectingSocket {
+export class ReconnectingSocket<In = ServerMessage, Out = ClientMessage> {
   private ws: WebSocket | null = null;
   private attempt = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
@@ -36,7 +36,7 @@ export class ReconnectingSocket {
   private readonly sendQueue: LagQueue | null;
   private readonly recvQueue: LagQueue | null;
 
-  constructor(private readonly opts: SocketOptions) {
+  constructor(private readonly opts: SocketOptions<In>) {
     this.sendQueue = opts.lag ? new LagQueue(opts.lag) : null;
     this.recvQueue = opts.lag ? new LagQueue(opts.lag) : null;
   }
@@ -60,7 +60,7 @@ export class ReconnectingSocket {
     this.ws = null;
   }
 
-  send(msg: ClientMessage): void {
+  send(msg: Out): void {
     this.sendRaw(JSON.stringify(msg));
   }
 
@@ -120,9 +120,9 @@ export class ReconnectingSocket {
       this.lastMessageAt = performance.now();
       const data = event.data;
       if (typeof data !== 'string' || data === HEARTBEAT_PONG) return;
-      let msg: ServerMessage;
+      let msg: In;
       try {
-        msg = JSON.parse(data) as ServerMessage;
+        msg = JSON.parse(data) as In;
       } catch {
         return;
       }

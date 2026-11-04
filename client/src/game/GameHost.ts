@@ -55,6 +55,7 @@ export class GameHost {
   }
 
   setSession(session: GameSession | null): void {
+    if (session === this.session) return;
     this.unsubscribe?.();
     this.session?.leave();
     this.session = session;

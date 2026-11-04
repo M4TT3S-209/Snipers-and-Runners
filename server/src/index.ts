@@ -66,7 +66,9 @@ export default {
         return new Response('Ungültige Raum-ID', { status: 400 });
       }
       const stub = env.ROOM.get(env.ROOM.idFromName(roomId));
-      return stub.fetch(request);
+      const forward = new Request(request);
+      forward.headers.set('X-Room-Id', roomId);
+      return stub.fetch(forward);
     }
 
     return new Response('Nicht gefunden', { status: 404 });
