@@ -8,6 +8,8 @@ import { Hearts } from './hud/Hearts';
 import { useHud } from './hud/useHud';
 import { getSettings } from './settings';
 import { DebugPanel } from './DebugPanel';
+import { isUnlocked, trophiesFor } from '@scope-rush/shared';
+import { myTrophies } from './profile';
 import { RemoteSession } from '../game/RemoteSession';
 
 const WEAPONS: WeaponId[] = ['precision', 'semi', 'rocket'];
@@ -39,14 +41,15 @@ export function GameScreen({ host, onExit, debug }: { host: GameHost; onExit: ()
           {snap.stats.fps} FPS · {snap.stats.pixelRatio}× · {snap.stats.drawCalls} DC
         </div>
       )}
-      {view && role === 'runner' && view.phase === 'running' && <RunnerHud view={view} host={host} />}
-      {view && role === 'sniper' && (view.phase === 'running' || view.phase === 'countdown') && snap && (
+      {view && role === 'runner' && view.phase === 'running' && !snap?.bulletCam && <RunnerHud view={view} host={host} />}
+      {view && role === 'sniper' && (view.phase === 'running' || view.phase === 'countdown') && snap && !snap.bulletCam && (
         <SniperHud view={view} snap={snap} host={host} />
       )}
       {view && role === 'runner' && view.phase === 'running' && isOut(view) && view.snipers[0] && (
         <div class="banner info center-top">{T.game.spectating(view.snipers[0].name)}</div>
       )}
-      {view && meta && !meta.paused && <PhaseOverlay view={view} meta={meta} host={host} onExit={onExit} />}
+      {view && meta && !meta.paused && !snap?.bulletCam && <PhaseOverlay view={view} meta={meta} host={host} onExit={onExit} />}
+      {snap?.bulletCam && <div class="slowmo">ZEITLUPE</div>}
       <OnlineOverlay host={host} meta={meta} />
 
       <button class="btn menu-btn" aria-label={T.game.leave} onClick={() => setConfirmLeave(true)}>
@@ -318,6 +321,7 @@ function LoadoutOverlay({ view, meta, host }: { view: GameView; meta: MatchMeta;
   const total = meta.mode === 'practice' ? 6 : CONFIG.match.loadoutS;
   const pct = Math.max(0, Math.min(100, (view.phaseLeftS / total) * 100));
   const session = host.getSession();
+  const trophies = myTrophies();
 
   if (role === 'spectator') {
     return (
@@ -339,34 +343,42 @@ function LoadoutOverlay({ view, meta, host }: { view: GameView; meta: MatchMeta;
         <h2>{role === 'runner' ? T.game.loadoutTitleRunner : T.game.loadoutTitleSniper}</h2>
         <div class="choice-grid">
           {role === 'sniper'
-            ? WEAPONS.map((w) => (
-                <button
-                  key={w}
-                  class={`choice ${mine?.weapon === w ? 'selected' : ''}`}
-                  onClick={() => {
-                    session?.setLoadout({ weapon: w }, false);
-                    playClick();
-                  }}
-                >
-                  <span class="choice-icon">{WEAPON_ICON[w]}</span>
-                  <b>{T.weapons[w].name}</b>
-                  <small>{T.weapons[w].desc}</small>
-                </button>
-              ))
-            : GADGETS.map((g) => (
-                <button
-                  key={g ?? 'none'}
-                  class={`choice ${mine?.gadget === g ? 'selected' : ''}`}
-                  onClick={() => {
-                    session?.setLoadout({ gadget: g }, false);
-                    playClick();
-                  }}
-                >
-                  <span class="choice-icon">{g ? GADGET_ICON[g] : '🚫'}</span>
-                  <b>{g ? T.gadgets[g].name : T.game.noGadget}</b>
-                  {g && <small>{T.gadgets[g].desc}</small>}
-                </button>
-              ))}
+            ? WEAPONS.map((w) => {
+                const locked = !isUnlocked('weapon', w, trophies);
+                return (
+                  <button
+                    key={w}
+                    class={`choice ${mine?.weapon === w ? 'selected' : ''} ${locked ? 'locked' : ''}`}
+                    disabled={locked}
+                    onClick={() => {
+                      session?.setLoadout({ weapon: w }, false);
+                      playClick();
+                    }}
+                  >
+                    <span class="choice-icon">{locked ? '🔒' : WEAPON_ICON[w]}</span>
+                    <b>{T.weapons[w].name}</b>
+                    <small>{locked ? T.look.needTrophies(trophiesFor('weapon', w)) : T.weapons[w].desc}</small>
+                  </button>
+                );
+              })
+            : GADGETS.map((g) => {
+                const locked = g !== null && !isUnlocked('gadget', g, trophies);
+                return (
+                  <button
+                    key={g ?? 'none'}
+                    class={`choice ${mine?.gadget === g ? 'selected' : ''} ${locked ? 'locked' : ''}`}
+                    disabled={locked}
+                    onClick={() => {
+                      session?.setLoadout({ gadget: g }, false);
+                      playClick();
+                    }}
+                  >
+                    <span class="choice-icon">{locked ? '🔒' : g ? GADGET_ICON[g] : '🚫'}</span>
+                    <b>{g ? T.gadgets[g].name : T.game.noGadget}</b>
+                    {g && <small>{locked ? T.look.needTrophies(trophiesFor('gadget', g)) : T.gadgets[g].desc}</small>}
+                  </button>
+                );
+              })}
         </div>
         <div class="loadout-foot">
           <div class="timebar">

@@ -75,6 +75,7 @@ export interface PlayerInfo {
   id: string;
   name: string;
   colorIndex: number;
+  emote: 'cheer' | 'dance' | 'spin' | 'flex';
   isBot: boolean;
   connected: boolean;
 }

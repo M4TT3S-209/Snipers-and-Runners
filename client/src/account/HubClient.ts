@@ -8,7 +8,9 @@ import {
   type HubServerMessage,
   type PairingOffer,
   type PartyInviteInfo,
+  type Profile,
   type StatsInfo,
+  type Cosmetics,
 } from '@scope-rush/shared';
 import { ReconnectingSocket, type SocketStatus } from '../net/socket';
 import { toWebSocketUrl } from '../net/serverUrl';
@@ -36,6 +38,7 @@ export interface HubState {
   inviteInfo: { token: string; from: AccountInfo | null } | null;
   transfer: { code: string; expiresAt: number } | null;
   stats: StatsInfo | null;
+  profile: Profile | null;
   lastError: { code: HubErrorCode; ctx?: string; at: number } | null;
   toast: { text: string; at: number } | null;
 }
@@ -61,6 +64,7 @@ export class HubClient {
     inviteInfo: null,
     transfer: null,
     stats: null,
+    profile: null,
     lastError: null,
     toast: null,
   };
@@ -164,6 +168,9 @@ export class HubClient {
   loadStats(): void {
     this.send({ t: 'stats' });
   }
+  setCosmetics(c: Cosmetics): void {
+    this.send({ t: 'cosmetics', skin: c.skin, emote: c.emote });
+  }
   clearToast(): void {
     this.set({ toast: null });
   }
@@ -188,7 +195,11 @@ export class HubClient {
           challengesIn: m.challenges.filter((c) => c.to.id === m.me.id),
           challengesOut: m.challenges.filter((c) => c.from.id === m.me.id),
           parties: m.parties,
+          profile: m.profile,
         });
+        break;
+      case 'profile':
+        this.set({ profile: m.profile });
         break;
       case 'friends':
         this.set({ friends: m.friends, incoming: m.incoming, outgoing: m.outgoing });

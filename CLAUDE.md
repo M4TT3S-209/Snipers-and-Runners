@@ -75,7 +75,7 @@ Versionen (bewusst gewählt):
 - [x] M2 Online-1v1 per Raum-Link (RoomCore + RoomDO, RemoteSession mit Vorhersage/Interpolation/Lag-Komp., Pause bei App-Wechsel, Revanche). Lokal mit 2 Browsern + 150 ms Lag getestet. Wartet auf Test mit 2 iPhones.
 - [x] M3 Konten (Name#Tag, Geräte-Tokens, Cookie, Kopplung, Übertragungscode/QR), Freunde (Link/QR/Name#Tag), Status, Herausforderung mit Pop-up + Posteingang, Party-Lobby mit Einladungen, Statistik. Lokal mit 2 Browsern getestet.
 - [x] M4 Waffen/Gadgets (mit Auswahl), Streckengenerator (13 Segmente, 5 Themen), Klassik online (3–8 Spieler, 1–2 Sniper, Zuschauen durchs Zielfernrohr), 1v1 mit Zuschauern (Sieger bleibt)
-- [ ] M5 Feinschliff, Trophäen, Statistiken, Tutorial
+- [x] M5 Bullet-Cam (Zeitlupe beim Ausscheiden), Trophäen + Freischaltungen (`shared/src/unlocks.ts`: Themen, Waffen, Gadgets, Farben, Jubel), Aussehen-Bildschirm, Sieger-Podium mit Jubel, Mitmach-Tutorial, Statistik (M3). Sounds/Effekte seit M1.
 - [ ] M6 (optional) Web-Push
 
 ## Arbeitsweise (vom Nutzer gewünscht)
@@ -99,6 +99,10 @@ Versionen (bewusst gewählt):
 - Hub-Logik in `server/src/hub/HubCore.ts` (SQL-Schnittstelle, in Tests `node:sqlite`), `HubDO` ist Adapter. Mehrere Geräte-Tokens pro Konto (Tabelle `tokens`), nur SHA-256-Hashes gespeichert.
 - Hub ↔ Room per DO-RPC: `room.configure()` (Herausforderung/Party), `hub.authenticate()`, `hub.setInMatch()`, `hub.reportMatch()`.
 - Server-Tests haben eine eigene `server/test/tsconfig.json` (Node-Typen), der Server-Code nutzt Worker-Typen.
+
+## Freischaltungen
+- Tabelle in `shared/src/unlocks.ts`. Online zählen die Trophäen des Kontos (Hub), ohne Server lokale Trophäen aus Bot-Duellen (`settings.localTrophies`, halber Wert).
+- Raum-Themen = was mindestens ein Spieler freigeschaltet hat (`themesFor`). Waffen/Gadgets werden in der Ausrüstungswahl clientseitig gesperrt.
 
 ## Entscheidungen und Erkenntnisse (laufend ergänzen)
 - iOS kopiert beim „Zum Home-Bildschirm“ (ab 17.2) nur **Cookies** aus Safari, nicht localStorage. Darum liegt das Konto-Token in beiden. Fallback ist die Netzwerk-Kopplung (gleiche IP, 10 min, Bestätigung per Tipp), danach der Übertragungscode.

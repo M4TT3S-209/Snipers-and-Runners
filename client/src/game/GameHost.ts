@@ -1,4 +1,5 @@
-import { CONFIG, type MatchEvent } from '@scope-rush/shared';
+import { CONFIG, type MatchEvent, type ProjectileInfo, type TurnEvent, type Vec3 } from '@scope-rush/shared';
+import { LocalSession } from './LocalSession';
 import { SfxPlayer } from '../audio/sfx';
 import { unlockAudio } from '../audio/synth';
 import { attachGestures } from '../input/gestures';
@@ -18,6 +19,7 @@ export interface HudSnapshot {
   stats: RenderStats;
   zoom: number;
   releaseZoom: number;
+  bulletCam: boolean;
 }
 
 export class GameHost {
@@ -38,6 +40,8 @@ export class GameHost {
   private inputEl: HTMLElement | null = null;
   private inputRole = '';
   private lastAimSent = 0;
+  private readonly recentShots = new Map<number, ProjectileInfo>();
+  private lastKill: { projectileId: number; tick: number; point: Vec3; runnerId: string } | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
     this.renderer = new GameRenderer(canvas);
@@ -93,9 +97,30 @@ export class GameHost {
   // ------------------------------------------------------------------
 
   private onSessionEvent(e: SessionEvent): void {
-    if (e.t === 'turn') this.renderer.onTurnEvent(e.ev, this.lastView);
+    if (e.t === 'turn') {
+      this.renderer.onTurnEvent(e.ev, this.lastView);
+      this.watchForBulletCam(e.ev);
+    }
     if (e.t !== 'status' && e.t !== 'left') this.sfx.onMatchEvent(e as MatchEvent, this.lastView);
     for (const l of this.eventListeners) l(e);
+  }
+
+  /** Entscheidender Treffer (Läufer raus) → Zeitlupe aus Sicht der Kugel */
+  private watchForBulletCam(ev: TurnEvent): void {
+    if (ev.t === 'shot') {
+      this.recentShots.set(ev.projectile.id, ev.projectile);
+      if (this.recentShots.size > 40) this.recentShots.delete(this.recentShots.keys().next().value!);
+    } else if (ev.t === 'hit' && !ev.shielded && ev.hpLeft <= 0) {
+      this.lastKill = { projectileId: ev.projectileId, tick: ev.tick, point: ev.point, runnerId: ev.runnerId };
+    } else if (ev.t === 'out' && this.lastKill?.runnerId === ev.runnerId) {
+      const p = this.recentShots.get(this.lastKill.projectileId);
+      const mode = this.session?.meta()?.mode;
+      // Im Duell (und in der Übung) ist das Ausscheiden immer spielentscheidend für den Zug
+      if (p && mode !== 'classic' && !(this.session instanceof LocalSession && this.session.isDemo)) {
+        this.renderer.startBulletCam(p, this.lastKill.tick, this.lastKill.point, ev.runnerId);
+      }
+      this.lastKill = null;
+    }
   }
 
   private frame(now: number): void {
@@ -144,6 +169,7 @@ export class GameHost {
         stats: this.renderer.getStats(),
         zoom: this.sniper.zoom,
         releaseZoom: this.sniper.releaseZoom,
+        bulletCam: this.renderer.bulletCamActive,
       };
       for (const l of this.hudListeners) l(snap);
     }
@@ -151,7 +177,12 @@ export class GameHost {
 
   private cameraFor(view: GameView): CameraMode {
     const phase = view.phase;
-    if (phase === 'roundResult' || phase === 'matchResult') return { kind: 'orbit', focus: 'finish' };
+    if (phase === 'matchResult') {
+      const meta = this.session?.meta();
+      const winner = meta?.players.find((p) => p.id === meta.winnerId) ?? (meta?.mode === 'practice' ? meta.players.find((p) => p.id === meta.myId) : undefined);
+      return winner ? { kind: 'orbit', focus: 'finish', podium: { colorIndex: winner.colorIndex, emote: winner.emote } } : { kind: 'orbit', focus: 'finish' };
+    }
+    if (phase === 'roundResult') return { kind: 'orbit', focus: 'finish' };
     if (view.myRole === 'sniper') return { kind: 'sniper', dir: this.sniper.direction(), zoom: this.sniper.zoom };
     if (view.myRole === 'runner') {
       const me = view.runners.find((r) => r.id === view.myId);

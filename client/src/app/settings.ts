@@ -17,6 +17,11 @@ export interface Settings {
   /** Hinweise schon gesehen */
   seenRunnerTips: boolean;
   seenSniperTips: boolean;
+  seenTutorial: boolean;
+  /** Offline-Trophäen (ohne Server) */
+  localTrophies: number;
+  skin: number;
+  emote: 'cheer' | 'dance' | 'spin' | 'flex';
 }
 
 const KEY = 'rvs.settings.v1';
@@ -32,6 +37,10 @@ const DEFAULTS: Settings = {
   showFps: false,
   seenRunnerTips: false,
   seenSniperTips: false,
+  seenTutorial: false,
+  localTrophies: 0,
+  skin: 0,
+  emote: 'cheer',
 };
 
 function load(): Settings {

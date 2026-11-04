@@ -1,4 +1,4 @@
-import type { AccountInfo } from '@scope-rush/shared';
+import { themesFor, type AuthInfo, type EmoteId } from '@scope-rush/shared';
 import type { RoomSetup } from '../hub/HubCore';
 import {
   CONFIG,
@@ -50,6 +50,8 @@ interface Member {
   seat: 'player' | 'spectator';
   ready: boolean;
   conn: Conn | null;
+  trophies?: number;
+  emote?: EmoteId;
 }
 
 export interface RoomPersist {
@@ -75,7 +77,7 @@ export interface RoomHooks {
   onMatchEnd?(s: MatchSummary): void;
   onEmpty?(): void;
   /** Konto-Token prüfen (beim Hub) */
-  authenticate?(token: string): Promise<AccountInfo | null>;
+  authenticate?(token: string): Promise<AuthInfo | null>;
   /** Konten sind jetzt im Match / nicht mehr (für den Online-Status) */
   onInMatch?(accountIds: string[], inMatch: boolean): void;
 }
@@ -283,7 +285,7 @@ export class RoomCore {
 
   // ------------------------------------------------------------------ intern
 
-  private join(conn: Conn, rawName: string, key: string, spectate: boolean, account: AccountInfo | null): void {
+  private join(conn: Conn, rawName: string, key: string, spectate: boolean, account: AuthInfo | null): void {
     const check = account ? ({ ok: true, name: account.name } as const) : checkName(rawName);
     if (!check.ok) {
       this.sendTo(conn, { t: 'error', code: 'bad_name' });
@@ -299,6 +301,10 @@ export class RoomCore {
       }
       m.conn = conn;
       m.name = check.name;
+      if (account) {
+        m.trophies = account.trophies;
+        m.emote = account.cosmetics.emote;
+      }
     } else {
       if (this.members.size >= MAX_MEMBERS) {
         this.sendTo(conn, { t: 'error', code: 'room_full' });
@@ -308,7 +314,18 @@ export class RoomCore {
       const matchRunning = this.flow !== null && this.flow.phase !== 'matchResult';
       const expectedPlayer = account !== null && this.expected.includes(account.id);
       const seat = !spectate && !matchRunning && (players < this.maxPlayers() || expectedPlayer) ? 'player' : 'spectator';
-      m = { id: account?.id ?? randomId(8), accountId: account?.id ?? null, key, name: check.name, color: this.freeColor(), seat, ready: false, conn };
+      m = {
+        id: account?.id ?? randomId(8),
+        accountId: account?.id ?? null,
+        key,
+        name: check.name,
+        color: this.freeColor(account?.cosmetics.skin),
+        seat,
+        ready: false,
+        conn,
+        trophies: account?.trophies ?? 0,
+        emote: account?.cosmetics.emote ?? 'cheer',
+      };
       this.members.set(m.id, m);
       if (!this.hostId || !this.members.has(this.hostId)) this.hostId = m.id;
     }
@@ -442,6 +459,8 @@ export class RoomCore {
       mode: this.mode,
       players: players.map((p) => ({ id: p.id, name: p.name })),
       seed: (Math.random() * 2 ** 32) >>> 0,
+      // Themen: was mindestens einer freigeschaltet hat
+      themes: themesFor(players.map((p) => p.trophies ?? 0)),
     });
     for (const m of this.members.values()) m.ready = false;
     this.rematchVotes.clear();
@@ -522,7 +541,12 @@ export class RoomCore {
     const turn = f.turn;
     return {
       mode: f.mode,
-      players: f.players.map((p) => ({ id: p.id, name: p.name, color: this.members.get(p.id)?.color ?? 0 })),
+      players: f.players.map((p) => ({
+        id: p.id,
+        name: p.name,
+        color: this.members.get(p.id)?.color ?? 0,
+        emote: this.members.get(p.id)?.emote ?? 'cheer',
+      })),
       phase: f.phase,
       matchTick: f.matchTick,
       phaseEndsAt: f.phaseEndsAt,
@@ -592,8 +616,9 @@ export class RoomCore {
     safeSend(conn, JSON.stringify(msg));
   }
 
-  private freeColor(): number {
+  private freeColor(preferred?: number): number {
     const used = new Set([...this.members.values()].map((m) => m.color));
+    if (preferred !== undefined && !used.has(preferred)) return preferred;
     for (let c = 0; c < 8; c++) if (!used.has(c)) return c;
     return this.members.size % 8;
   }

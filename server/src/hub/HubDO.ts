@@ -1,5 +1,5 @@
 import { DurableObject } from 'cloudflare:workers';
-import { HEARTBEAT_PING, HEARTBEAT_PONG, type AccountInfo } from '@scope-rush/shared';
+import { HEARTBEAT_PING, HEARTBEAT_PONG, type AuthInfo } from '@scope-rush/shared';
 import type { Env } from '../env';
 import type { MatchSummary } from '../room/RoomCore';
 import { HubCore, type HubConn, type Sql, type SqlValue } from './HubCore';
@@ -93,7 +93,7 @@ export class HubDO extends DurableObject<Env> {
 
   // ------------------------------------------------------------------ RPC (vom RoomDO)
 
-  async authenticate(token: string): Promise<AccountInfo | null> {
+  async authenticate(token: string): Promise<AuthInfo | null> {
     return this.core.authenticate(token);
   }
 

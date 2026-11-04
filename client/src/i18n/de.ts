@@ -314,6 +314,43 @@ export const T = {
     noGames: 'Noch keine Online-Duelle gespielt.',
   },
 
+  look: {
+    title: 'Aussehen',
+    button: '🎨 Aussehen & Freischaltungen',
+    trophies: (n: number) => `🏆 ${n} Trophäen`,
+    skins: 'Farben',
+    emotes: 'Sieger-Jubel',
+    unlocks: 'Freischaltungen',
+    needTrophies: (n: number) => `ab 🏆 ${n}`,
+    emoteNames: { cheer: 'Jubeln', dance: 'Tanzen', spin: 'Drehen', flex: 'Muskeln' },
+    kinds: { theme: 'Strecke', weapon: 'Waffe', gadget: 'Gadget', skin: 'Farbe', emote: 'Jubel' },
+    newUnlock: '🔓 Neu freigeschaltet!',
+    offlineHint: 'Ohne Server gibt es Trophäen für Siege gegen Bots.',
+    back: 'Zurück',
+  },
+
+  tutorial: {
+    button: '🎓 Tutorial (1 Minute)',
+    next: 'Weiter',
+    skip: 'Überspringen',
+    done: 'Fertig',
+    nice: 'Super! ✔',
+    tryIt: 'Probier’s hier aus:',
+    practiceRunner: '🏃 Läufer üben',
+    practiceSniper: '🎯 Sniper üben',
+    steps: [
+      { icon: '🏃', title: 'Du bist Läufer', text: 'Du rennst von selbst zum Turm. Komm ins Ziel, ohne abgeschossen zu werden!', wait: null },
+      { icon: '⬅️', title: 'Spur wechseln', text: 'Wische nach links.', wait: 'left' },
+      { icon: '➡️', title: 'Und zurück', text: 'Wische nach rechts.', wait: 'right' },
+      { icon: '⬆️', title: 'Springen', text: 'Wische nach oben – über Hürden, Lücken und Kisten.', wait: 'up' },
+      { icon: '⬇️', title: 'Rutschen', text: 'Wische nach unten – unter Balken hindurch.', wait: 'down' },
+      { icon: '✋', title: 'Ducken', text: 'Halte den Finger einfach auf dem Bildschirm. Hinter Deckung bist du sicher – aber du stehst still!', wait: 'holdStart' },
+      { icon: '✨', title: 'Achtung, Glitzern!', text: 'Blitzt das Zielfernrohr am Turm, zielt der Sniper gerade auf dich. Nach jedem Schuss muss er nachladen – dann renn!', wait: null },
+      { icon: '🎯', title: 'Du bist Sniper', text: 'Ziehe mit dem Finger zum Zielen, 🔭 zoomt ran. Die Kugel braucht Zeit – ziele ein Stück vor den Läufer! Kisten und Mauern kannst du wegschießen.', wait: null },
+      { icon: '🔄', title: 'Rollentausch', text: 'Im Duell ist jeder einmal Läufer und einmal Sniper. Wer als Läufer weiter kommt (oder schneller im Ziel ist), holt die Runde. Best of 3!', wait: null },
+    ],
+  },
+
   themes: {
     meadow: 'Wiese',
     desert: 'Wüste',

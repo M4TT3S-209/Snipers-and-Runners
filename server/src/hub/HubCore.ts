@@ -2,6 +2,9 @@ import {
   CONFIG,
   PROTOCOL_VERSION,
   checkName,
+  sanitizeCosmetics,
+  type AuthInfo,
+  type Profile,
   type AccountInfo,
   type ChallengeInfo,
   type FriendInfo,
@@ -142,11 +145,25 @@ export class HubCore {
 
   // ------------------------------------------------------------------ RPC vom Raum
 
-  async authenticate(token: string): Promise<AccountInfo | null> {
+  async authenticate(token: string): Promise<AuthInfo | null> {
     if (!/^[A-Za-z0-9_-]{20,80}$/.test(token)) return null;
     const hash = await this.hooks.sha256(token);
-    const row = this.sql.exec(`SELECT a.id, a.name, a.tag FROM tokens t JOIN accounts a ON a.id = t.account_id WHERE t.hash = ?`, hash)[0];
-    return row ? toAccount(row) : null;
+    const row = this.sql.exec(`SELECT a.id FROM tokens t JOIN accounts a ON a.id = t.account_id WHERE t.hash = ?`, hash)[0];
+    if (!row) return null;
+    const account = this.account(String(row.id))!;
+    return { ...account, ...this.profile(account.id) };
+  }
+
+  profile(id: string): Profile {
+    const r = this.sql.exec(`SELECT trophies, cosmetics FROM accounts WHERE id = ?`, id)[0];
+    const trophies = Number(r?.trophies ?? 0);
+    let raw: unknown = {};
+    try {
+      raw = JSON.parse(String(r?.cosmetics ?? '{}'));
+    } catch {
+      raw = {};
+    }
+    return { trophies, cosmetics: sanitizeCosmetics(raw, trophies) };
   }
 
   setInMatch(ids: string[], inMatch: boolean): void {
@@ -157,6 +174,11 @@ export class HubCore {
   }
 
   reportMatch(s: MatchSummary): void {
+    this.recordMatch(s);
+    for (const p of s.players) if (p.accountId) this.sendToAccount(p.accountId, { t: 'profile', profile: this.profile(p.accountId) });
+  }
+
+  private recordMatch(s: MatchSummary): void {
     const players = s.players.filter((p) => p.accountId);
     this.setInMatch(
       players.map((p) => p.accountId!),
@@ -273,6 +295,12 @@ export class HubCore {
         return this.partyRespond(conn, me, msg.id, msg.accept);
       case 'stats':
         return this.send(conn, { t: 'stats', stats: this.stats(me) });
+      case 'cosmetics': {
+        const trophies = this.profile(me).trophies;
+        const c = sanitizeCosmetics({ skin: msg.skin, emote: msg.emote }, trophies);
+        this.sql.exec(`UPDATE accounts SET cosmetics = ? WHERE id = ?`, JSON.stringify(c), me);
+        return this.sendToAccount(me, { t: 'profile', profile: this.profile(me) });
+      }
       default:
         return;
     }
@@ -693,6 +721,7 @@ export class HubCore {
       ...this.requests(id),
       challenges: this.pendingChallenges(id),
       parties: this.partyInvites(id),
+      profile: this.profile(id),
       protocol: PROTOCOL_VERSION,
       server: this.hooks.buildId,
     });

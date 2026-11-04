@@ -13,13 +13,15 @@ export interface HomeProps {
   onInviteAppHint: () => void;
   onStart: (mode: LocalMode) => void;
   onSettings: () => void;
+  onTutorial: () => void;
+  onLook: () => void;
   friends: { online: number; requests: number; onClick: () => void } | null;
   online: { label: string; sub: string; onClick: (() => void) | null } | null;
 }
 
 const LEVELS: BotLevelSetting[] = ['easy', 'medium', 'hard'];
 
-export function Home({ account, inviter, onNameChosen, onInviteAppHint, onStart, onSettings, friends, online }: HomeProps) {
+export function Home({ account, inviter, onNameChosen, onInviteAppHint, onStart, onSettings, onTutorial, onLook, friends, online }: HomeProps) {
   const [settings, setSettingsState] = useState(getSettings());
   const [name, setName] = useState(settings.name);
 
@@ -119,6 +121,14 @@ export function Home({ account, inviter, onNameChosen, onInviteAppHint, onStart,
             <button class="btn" onClick={() => start('classic')}>
               {T.home.classicBot} <small class="muted">· {T.home.classicBotSub}</small>
             </button>
+            <div class="tile-grid">
+              <button class={`btn ${settings.seenTutorial ? '' : 'primary'}`} onClick={onTutorial}>
+                {T.tutorial.button}
+              </button>
+              <button class="btn" onClick={onLook}>
+                {T.look.button}
+              </button>
+            </div>
             <div class="level-row">
               <span class="muted">{T.home.level}</span>
               {LEVELS.map((l) => (

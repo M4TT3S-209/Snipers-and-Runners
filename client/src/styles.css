@@ -1601,3 +1601,141 @@ input[type='range'] {
   font-weight: 900;
   margin: 4px 0;
 }
+
+/* Bullet-Cam */
+.slowmo {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--sat) + 120px);
+  text-align: center;
+  font-weight: 900;
+  letter-spacing: 0.4em;
+  font-size: 15px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  animation: pulse-op 0.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-op {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.choice.locked {
+  opacity: 0.55;
+}
+
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.skin {
+  appearance: none;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  padding: 8px 4px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.skin.selected {
+  border-color: var(--accent);
+}
+
+.skin.locked {
+  opacity: 0.45;
+}
+
+.swatch {
+  display: flex;
+  flex-direction: column;
+  width: 34px;
+  border-radius: 10px;
+  overflow: hidden;
+  border: 2px solid #14122b;
+}
+
+.swatch i {
+  display: block;
+  height: 12px;
+}
+
+.unlock-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 13px;
+}
+
+.unlock-row.got {
+  color: var(--ok);
+}
+
+/* ---------- Tutorial ---------- */
+
+.tutorial {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: calc(var(--sat) + 14px) calc(var(--sar) + 12px) calc(var(--sab) + 12px) calc(var(--sal) + 12px);
+  background: linear-gradient(180deg, rgba(16, 18, 44, 0.1), rgba(16, 18, 44, 0.8) 40%);
+}
+
+.tutorial-card {
+  max-width: none;
+}
+
+.tutorial-progress {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.tutorial-progress span {
+  width: 18px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.tutorial-progress span.on {
+  background: var(--accent);
+}
+
+.tutorial-icon {
+  font-size: 54px;
+  text-align: center;
+}
+
+.gesture-pad.big {
+  height: 160px;
+}
+
+.gesture-pad.ok {
+  border-color: var(--ok);
+  background: rgba(74, 222, 128, 0.12);
+  color: var(--ok);
+}
+
+.skip-btn {
+  margin-top: 8px;
+}

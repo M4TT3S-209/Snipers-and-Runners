@@ -2,6 +2,7 @@ import type { GadgetId, WeaponId } from '../config';
 import type { Loadout, MatchMode, MatchPhase, TurnPlan, TurnRecord } from '../rules/match';
 import type { RunnerAction, RunnerMove } from '../sim/runner';
 import type { ProjectileInfo, TurnEvent } from '../sim/turn';
+import type { EmoteId } from '../unlocks';
 
 /**
  * Protokoll zwischen Client und Raum (RoomDO): Lobby + Match.
@@ -70,7 +71,7 @@ export interface TurnSnapshotFull {
 
 export interface MatchSnapshot {
   mode: MatchMode;
-  players: Array<{ id: string; name: string; color: number }>;
+  players: Array<{ id: string; name: string; color: number; emote: EmoteId }>;
   phase: MatchPhase;
   matchTick: number;
   phaseEndsAt: number;

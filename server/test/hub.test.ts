@@ -332,3 +332,25 @@ describe('Hub: Statistik', () => {
     expect(st.leaderboard.map((x) => x.name)).toEqual(['Max', 'Lena']);
   });
 });
+
+describe('Hub: Aussehen & Trophäen', () => {
+  it('nur freigeschaltetes Aussehen wird gespeichert; Anmeldung für Räume liefert Trophäen', async () => {
+    const s = setup();
+    const max = await s.account('Max', '1.1.1.1');
+    const lena = await s.account('Lena', '2.2.2.2');
+    await befriend(s, max, lena);
+    // 0 Trophäen: Farbe 5 und Jubel „spin“ sind gesperrt → Standard
+    await max.msg({ t: 'cosmetics', skin: 5, emote: 'spin' });
+    expect(max.last('profile')!.profile.cosmetics).toEqual({ skin: 0, emote: 'cheer' });
+    await max.msg({ t: 'cosmetics', skin: 1, emote: 'cheer' });
+    expect(max.last('profile')!.profile.cosmetics.skin).toBe(1);
+    const players = [
+      { id: max.accountId!, name: 'Max', key: '', accountId: max.accountId! },
+      { id: lena.accountId!, name: 'Lena', key: '', accountId: lena.accountId! },
+    ];
+    for (let i = 0; i < 2; i++) s.hub.reportMatch({ mode: 'duel', players, winnerId: max.accountId!, draw: false, roundWins: {}, scores: {} });
+    expect(max.last('profile')!.profile.trophies).toBe(2 * CONFIG.trophies.win);
+    const auth = await s.hub.authenticate(max.token);
+    expect(auth).toMatchObject({ name: 'Max', trophies: 2 * CONFIG.trophies.win, cosmetics: { skin: 1 } });
+  });
+});

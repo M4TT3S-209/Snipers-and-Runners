@@ -9,6 +9,7 @@ import {
   type BotLevel,
   type Loadout,
   type MatchMode,
+  type ThemeId,
   type RunnerAction,
   type RunnerMove,
   type Vec3,
@@ -26,6 +27,12 @@ export interface LocalOptions {
   mode: LocalMode;
   myName: string;
   botLevel: BotLevel;
+  /** Eigenes Aussehen und freigeschaltete Themen */
+  skin?: number;
+  emote?: PlayerInfo['emote'];
+  themes?: ThemeId[];
+  /** Wird am Ende eines Bot-Duells aufgerufen (Offline-Trophäen) */
+  onResult?: (r: 'win' | 'loss' | 'draw') => void;
   /** Anzahl Bots im Klassik-Modus */
   bots?: number;
   seed?: number;
@@ -47,19 +54,23 @@ export class LocalSession implements GameSession {
   private rematchVotes = new Set<string>();
 
   constructor(private readonly opts: LocalOptions) {
-    const me: PlayerInfo = { id: this.myId, name: opts.myName || 'Du', colorIndex: 0, isBot: false, connected: true };
+    const mySkin = opts.skin ?? 0;
+    const me: PlayerInfo = { id: this.myId, name: opts.myName || 'Du', colorIndex: mySkin, emote: opts.emote ?? 'cheer', isBot: false, connected: true };
     const botCount = opts.mode === 'classic' ? Math.max(2, Math.min(7, opts.bots ?? 3)) : 1;
+    const botColors = [0, 1, 2, 3, 4, 5, 6, 7].filter((c) => c !== mySkin);
+    const botEmotes: Array<PlayerInfo['emote']> = ['cheer', 'dance', 'spin', 'flex'];
     const bots: PlayerInfo[] = Array.from({ length: botCount }, (_, i) => ({
       id: `bot${i + 1}`,
       name: BOT_NAMES[i % BOT_NAMES.length]!,
-      colorIndex: i + 1,
+      colorIndex: botColors[i % botColors.length]!,
+      emote: botEmotes[i % botEmotes.length]!,
       isBot: true,
       connected: true,
     }));
     // Übung als Sniper: der Bot läuft im ersten (einzigen) Zug.
     // Demo (Menü-Hintergrund): zwei Bots, man schaut nur zu.
     if (opts.mode === 'demo') {
-      bots.push({ id: 'bot2', name: BOT_NAMES[1]!, colorIndex: 2, isBot: true, connected: true });
+      bots.push({ id: 'bot2', name: BOT_NAMES[1]!, colorIndex: 2, emote: 'dance', isBot: true, connected: true });
       this.players = bots;
     } else {
       this.players = opts.mode === 'practiceSniper' ? [bots[0]!, me] : [me, ...bots];
@@ -77,6 +88,7 @@ export class LocalSession implements GameSession {
       players: this.players.map((p) => ({ id: p.id, name: p.name })),
       seed: this.opts.seed ?? (Math.random() * 2 ** 32) >>> 0,
       singleTurn: practice,
+      ...(this.opts.themes && this.opts.themes.length > 0 ? { themes: this.opts.themes } : {}),
       ...(practice ? { loadoutS: this.opts.mode === 'demo' ? 1 : 6 } : {}),
     });
     const driver = new BotDriver(
@@ -119,7 +131,12 @@ export class LocalSession implements GameSession {
         for (const r of turn.runners) this.prevMoves.set(r.id, cloneMove(r.move));
       }
       this.flow.step();
-      for (const e of this.flow.drainEvents()) this.emit(e);
+      for (const e of this.flow.drainEvents()) {
+        this.emit(e);
+        if (e.t === 'matchEnd' && (this.opts.mode === 'duel' || this.opts.mode === 'classic')) {
+          this.opts.onResult?.(e.draw ? 'draw' : e.winnerId === this.myId ? 'win' : 'loss');
+        }
+      }
     }
     if (steps === 8) this.acc = 0;
     // Menü-Hintergrund läuft endlos

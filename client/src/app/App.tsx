@@ -19,8 +19,12 @@ import { StatsScreen } from './StatsScreen';
 import { TestPage } from './TestPage';
 import { getSettings, onSettings, updateSettings } from './settings';
 import { takeUrlParam } from './share';
+import { LookScreen, unlockName } from './LookScreen';
+import { TutorialScreen } from './TutorialScreen';
+import { awardLocalTrophies, bindProfileHub, myCosmetics, myTrophies, onUnlockNews } from './profile';
+import { themesFor, type Unlockable } from '@scope-rush/shared';
 
-type Screen = 'home' | 'settings' | 'game' | 'test' | 'room' | 'friends' | 'stats';
+type Screen = 'home' | 'settings' | 'game' | 'test' | 'room' | 'friends' | 'stats' | 'look' | 'tutorial';
 
 const SERVER_URL = resolveServerUrl(location.search, import.meta.env.VITE_SERVER_URL, location);
 let hubSingleton: HubClient | null = null;
@@ -28,6 +32,7 @@ function getHub(): HubClient | null {
   if (!SERVER_URL) return null;
   if (!hubSingleton) {
     hubSingleton = new HubClient(SERVER_URL);
+    bindProfileHub(hubSingleton);
     // Nur beim Entwickeln: Zugriff für Browser-Tests
     if (import.meta.env.DEV) (window as unknown as { __hub: HubClient }).__hub = hubSingleton;
   }
@@ -71,8 +76,17 @@ export function App({ host, debug }: { host: GameHost; debug: boolean }) {
   const inviteToken = useRef<string | null>(takeUrlParam('invite'));
   const transferCode = useRef<string | null>(takeUrlParam('transfer'));
   const accountRequested = useRef(false);
+  const [news, setNews] = useState<Unlockable[] | null>(null);
 
   useEffect(() => onUpdateAvailable(() => setUpdate(true)), []);
+  useEffect(
+    () =>
+      onUnlockNews((items) => {
+        setNews(items);
+        setTimeout(() => setNews(null), 5000);
+      }),
+    [],
+  );
   useEffect(() => onSettings((s) => setName(s.name)), []);
 
   const account = hubState && typeof hubState.account === 'object' ? hubState.account : null;
@@ -176,7 +190,19 @@ export function App({ host, debug }: { host: GameHost; debug: boolean }) {
 
   const startLocal = (mode: LocalMode) => {
     const s = getSettings();
-    host.setSession(new LocalSession({ mode, myName: s.name, botLevel: s.botLevel, bots: 3 }));
+    const look = myCosmetics();
+    host.setSession(
+      new LocalSession({
+        mode,
+        myName: s.name,
+        botLevel: s.botLevel,
+        bots: 3,
+        skin: look.skin,
+        emote: look.emote,
+        themes: themesFor([myTrophies()]),
+        onResult: awardLocalTrophies,
+      }),
+    );
     setScreen('game');
   };
 
@@ -213,6 +239,8 @@ export function App({ host, debug }: { host: GameHost; debug: boolean }) {
           }}
           onStart={startLocal}
           onSettings={() => setScreen('settings')}
+          onTutorial={() => setScreen('tutorial')}
+          onLook={() => setScreen('look')}
           friends={hub ? { online: onlineFriends, requests: pendingRequests, onClick: () => setScreen('friends') } : null}
           online={
             SERVER_URL
@@ -224,6 +252,10 @@ export function App({ host, debug }: { host: GameHost; debug: boolean }) {
       {screen === 'settings' && <SettingsScreen hub={hub} onBack={() => setScreen('home')} onDeviceTest={() => setScreen('test')} />}
       {screen === 'friends' && hub && <FriendsScreen hub={hub} onBack={() => setScreen('home')} onStats={() => setScreen('stats')} />}
       {screen === 'stats' && hub && <StatsScreen hub={hub} onBack={() => setScreen('friends')} />}
+      {screen === 'look' && <LookScreen offline={!account} onBack={() => setScreen('home')} />}
+      {screen === 'tutorial' && (
+        <TutorialScreen onDone={() => setScreen('home')} onPractice={(role) => startLocal(role === 'runner' ? 'practiceRunner' : 'practiceSniper')} />
+      )}
       {screen === 'test' && <TestPage onBack={() => setScreen('settings')} subscribeStats={(cb) => host.onHud((s) => cb(s.stats))} />}
       {screen === 'room' && remote && <RoomScreen session={remote} hub={hub} onLeave={leaveRoom} />}
       {screen === 'game' && <GameScreen host={host} debug={debug && !remote} onExit={exitGame} />}
@@ -245,7 +277,15 @@ export function App({ host, debug }: { host: GameHost; debug: boolean }) {
           onClose={() => setGuide(false)}
         />
       )}
-      {showPopups && (
+      {news && (
+        <div class="popup">
+          <div class="card challenge-card">
+            <h2>{T.look.newUnlock}</h2>
+            <p class="center">{news.map((u) => `${T.look.kinds[u.kind]}: ${unlockName(u)}`).join(' · ')}</p>
+          </div>
+        </div>
+      )}
+      {showPopups && !news && (
         <Popups
           hub={hub}
           inviteToken={inviteToken.current}

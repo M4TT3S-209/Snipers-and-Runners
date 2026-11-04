@@ -48,6 +48,12 @@ Solange 1–4 fehlen, laufen die Tests trotzdem bei jedem Push. Server und Spiel
 16. 🎮 **Party**: Freunde → „Party erstellen“ → Freunde einladen → Gastgeber wählt Modus „Klassik“ → ab 3 Spielern auf „Bereit“.
 17. ❓ **Datenschutz-Hinweis**: Für die Netzwerk-Kopplung speichert der Server deine IP-Adresse 10 Minuten lang als verschlüsselten Fingerabdruck (nicht lesbar). Ist das für euch okay? Sonst lasse ich die Kopplung weg, dann bleiben nur Cookie und Übertragungscode.
 
+## Feinschliff (M5)
+
+18. 🎮 **Bullet-Cam**: Wenn ein Läufer ausscheidet, kommt eine kurze Zeitlupe aus Sicht der Kugel. Zu lang, zu kurz, nervig?
+19. ❓ **Freischaltungen**: Halbautomatik, Rauch, Raketenwerfer und Köder werden mit 10–40 Trophäen frei (ca. 2–5 Matches). Sollen Waffen und Gadgets **online von Anfang an für alle frei** sein, damit es unter Freunden 100 % fair ist? Dann blieben nur Themen, Farben und Jubel zum Freischalten.
+20. 🎮 **Tutorial**: Im Menü „🎓 Tutorial“. Verständlich genug für Freunde, die das Spiel nicht kennen?
+
 ## Beobachtungen beim Balancing (zur Info, keine Antwort nötig)
 
 - Der Turm ist hoch, die Kugeln kommen deshalb recht flach. Fehler nach vorn oder hinten verzeiht das Spiel, Fehler zur Seite und in der Höhe kaum. Ausweichen per **Spurwechsel** ist für Läufer deshalb die wichtigste Verteidigung, neben Deckung. Ich finde das gut so. Falls dir Treffen zu leicht vorkommt, wären die Stellschrauben: Kugel langsamer machen oder mehr Wackeln im Zielfernrohr.

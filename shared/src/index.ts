@@ -24,3 +24,4 @@ export { BotDriver, ALL_WEAPONS, ALL_GADGETS } from './bots/driver';
 export * from './protocol/room';
 export { checkName, type NameCheck } from './names';
 export * from './protocol/hub';
+export * from './unlocks';

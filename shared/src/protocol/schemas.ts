@@ -89,6 +89,7 @@ export const HubClientSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('partyInvite'), friendId: id, roomId: id }),
   z.object({ t: z.literal('partyRespond'), id, accept: z.boolean() }),
   z.object({ t: z.literal('stats') }),
+  z.object({ t: z.literal('cosmetics'), skin: num.int().min(0).max(7), emote: z.enum(['cheer', 'dance', 'spin', 'flex']) }),
   z.object({ t: z.literal('echo'), c: num }),
 ]);
 

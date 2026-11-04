@@ -1,4 +1,5 @@
 import type { MatchMode } from '../rules/match';
+import type { Cosmetics, EmoteId } from '../unlocks';
 
 /**
  * Protokoll zwischen Client und Hub (Konten, Freunde, Online-Status,
@@ -11,6 +12,17 @@ export interface AccountInfo {
   id: string;
   name: string;
   tag: number;
+}
+
+/** Anmelde-Info für Räume (mit Trophäen und Aussehen) */
+export interface AuthInfo extends AccountInfo {
+  trophies: number;
+  cosmetics: Cosmetics;
+}
+
+export interface Profile {
+  trophies: number;
+  cosmetics: Cosmetics;
 }
 
 export interface FriendInfo extends AccountInfo {
@@ -86,6 +98,7 @@ export type HubClientMessage =
   | { t: 'partyInvite'; friendId: string; roomId: string }
   | { t: 'partyRespond'; id: string; accept: boolean }
   | { t: 'stats' }
+  | { t: 'cosmetics'; skin: number; emote: EmoteId }
   | { t: 'echo'; c: number };
 
 // ---------------------------------------------------------------- Hub → Client
@@ -113,9 +126,11 @@ export type HubServerMessage =
       outgoing: AccountInfo[];
       challenges: ChallengeInfo[];
       parties: PartyInviteInfo[];
+      profile: Profile;
       protocol: number;
       server: string;
     }
+  | { t: 'profile'; profile: Profile }
   | { t: 'needAccount'; protocol: number; server: string }
   | { t: 'account'; me: AccountInfo; token: string }
   | { t: 'friends'; friends: FriendInfo[]; incoming: AccountInfo[]; outgoing: AccountInfo[] }

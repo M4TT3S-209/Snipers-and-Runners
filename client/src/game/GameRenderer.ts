@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CONFIG, sniperEye, type Track, type TurnEvent, type Vec3 } from '@scope-rush/shared';
+import { CONFIG, projectilePosAt, sniperEye, type ProjectileInfo, type Track, type TurnEvent, type Vec3 } from '@scope-rush/shared';
 import { Effects, toThree } from './effects';
 import { createRunnerModel, type RunnerAnim, type RunnerModel } from './runnerModel';
 import { createTowerModel, type TowerModel } from './towerModel';
@@ -15,7 +15,7 @@ export type CameraMode =
   | { kind: 'runner'; followId: string }
   | { kind: 'sniper'; dir: Vec3; zoom: number }
   | { kind: 'scopeOf'; sniperId: string }
-  | { kind: 'orbit'; focus: 'start' | 'finish' | 'tower' };
+  | { kind: 'orbit'; focus: 'start' | 'finish' | 'tower'; podium?: { colorIndex: number; emote: RunnerAnim } };
 
 export interface RenderStats {
   fps: number;
@@ -57,6 +57,17 @@ export class GameRenderer {
   private readonly shieldMat = new THREE.MeshBasicMaterial({ color: 0x5ad7ff, transparent: true, opacity: 0.28, depthWrite: false });
   private readonly resizeObserver: ResizeObserver;
   private viewportH = 800;
+  private podium: { model: RunnerModel; colorIndex: number } | null = null;
+  private bulletCam: {
+    p: ProjectileInfo;
+    hitTick: number;
+    hit: Vec3;
+    runnerId: string;
+    t: number;
+    hold: number;
+    mesh: THREE.Mesh;
+    boomed: boolean;
+  } | null = null;
   private fog: THREE.Fog | null = null;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
@@ -104,9 +115,28 @@ export class GameRenderer {
     this.camInit = false;
   }
 
+  /** Zeitlupe des entscheidenden Treffers (aus Sicht der Kugel) */
+  startBulletCam(p: ProjectileInfo, hitTick: number, hit: Vec3, runnerId: string): void {
+    const flight = Math.max(1, hitTick - p.spawnTime);
+    const mesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.07, 0.07, 1.6, 6),
+      new THREE.MeshBasicMaterial({ color: p.weapon === 'rocket' ? 0xff5d3a : 0xfff3a0 }),
+    );
+    this.scene.add(mesh);
+    this.bulletCam = { p, hitTick, hit, runnerId, t: hitTick - Math.min(flight, 32), hold: 0, mesh, boomed: false };
+  }
+
+  get bulletCamActive(): boolean {
+    return this.bulletCam !== null;
+  }
+
   /** Ein Frame. */
   frame(view: GameView, dt: number, cam: CameraMode): void {
     this.time += dt;
+    if (this.bulletCam) {
+      this.frameBulletCam(view, dt);
+      return;
+    }
     this.setTrack(view.track);
     this.trackView?.update(view.turnTime, view.coverHp, view.coverDestroyed, dt);
 
@@ -143,6 +173,7 @@ export class GameRenderer {
     }
     this.tower?.setGlint(glint);
 
+    this.updatePodium(view, cam, dt);
     this.updateCamera(view, cam, dt);
     this.effects.setViewport(this.viewportH * this.pixelRatio, this.camera.fov);
     this.effects.update(dt);
@@ -270,6 +301,89 @@ export class GameRenderer {
       this.effects.smokePuff(new THREE.Vector3(r.x, r.y, -r.z), CONFIG.gadgets.smoke.radius);
     }
     if (r.sprint && Math.random() < 0.5) this.effects.trail(new THREE.Vector3(r.x, r.y + 0.6, -r.z + 0.4));
+  }
+
+  private frameBulletCam(view: GameView, dt: number): void {
+    const bc = this.bulletCam!;
+    this.setTrack(view.track);
+    this.trackView?.update(Math.min(bc.t, view.turnTime), view.coverHp, view.coverDestroyed, dt);
+    // Läufer stehen still; der getroffene ist voll sichtbar
+    for (const r of view.runners) {
+      this.updateRunner(r, view, dt * 0.25);
+      const entry = this.runners.get(r.id);
+      if (entry && r.id === bc.runnerId) {
+        entry.model.setOpacity(1);
+        entry.model.root.position.set(bc.hit.x, Math.max(0, bc.hit.y - 1.3), -bc.hit.z);
+      }
+    }
+    // Zeitlupe: ~15 Ticks pro Sekunde statt 60
+    if (bc.t < bc.hitTick) bc.t = Math.min(bc.hitTick, bc.t + dt * CONFIG.sim.hz * 0.22);
+    else bc.hold += dt;
+    const pos = projectilePosAt(bc.p, bc.t);
+    const v = bc.p.vel;
+    const dir = new THREE.Vector3(v.x, v.y, -v.z).normalize();
+    const p3 = new THREE.Vector3(pos.x, pos.y, -pos.z);
+    bc.mesh.position.copy(p3);
+    bc.mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    bc.mesh.visible = bc.t < bc.hitTick;
+    const side = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
+    const camPos = p3.clone().addScaledVector(dir, -1.8).addScaledVector(side, 0.3).add(new THREE.Vector3(0, 0.28, 0));
+    this.camera.position.copy(camPos);
+    this.camera.lookAt(p3.clone().addScaledVector(dir, 2.5));
+    if (Math.abs(this.camera.fov - 50) > 0.1) {
+      this.camera.fov = 50;
+      this.camera.updateProjectionMatrix();
+    }
+    if (this.fog) {
+      this.fog.near = 60;
+      this.fog.far = 500;
+    }
+    if (bc.t >= bc.hitTick && !bc.boomed) {
+      bc.boomed = true;
+      const h = new THREE.Vector3(bc.hit.x, bc.hit.y, -bc.hit.z);
+      this.effects.label('BONK!', '#ffd23f', h.clone().add(new THREE.Vector3(0, 0.6, 0)), 1.6);
+      this.effects.confetti(h, 60);
+      this.runners.get(bc.runnerId)?.model.flash();
+    }
+    this.effects.setViewport(this.viewportH * this.pixelRatio, this.camera.fov);
+    this.effects.update(dt * (bc.boomed ? 0.5 : 0.25));
+    this.renderer.render(this.scene, this.camera);
+    this.measure();
+    if (bc.hold > 1.1) {
+      this.scene.remove(bc.mesh);
+      bc.mesh.geometry.dispose();
+      this.bulletCam = null;
+      this.camInit = false;
+    }
+  }
+
+  /** Sieger feiert an der Ziellinie (Match-Ende) */
+  private updatePodium(view: GameView, cam: CameraMode, dt: number): void {
+    const want = cam.kind === 'orbit' && cam.podium ? cam.podium : null;
+    if (!want) {
+      if (this.podium) {
+        this.scene.remove(this.podium.model.root);
+        this.podium.model.dispose();
+        this.podium = null;
+      }
+      return;
+    }
+    if (!this.podium || this.podium.colorIndex !== want.colorIndex) {
+      if (this.podium) this.scene.remove(this.podium.model.root);
+      const model = createRunnerModel(RUNNER_PALETTES[want.colorIndex % RUNNER_PALETTES.length]!);
+      model.root.scale.setScalar(1.6);
+      this.scene.add(model.root);
+      this.podium = { model, colorIndex: want.colorIndex };
+      this.effects.confetti(new THREE.Vector3(0, 4, -view.track.length), 120);
+    }
+    const root = this.podium.model.root;
+    root.position.set(0, 0, -view.track.length + 1.5);
+    // zur Kamera schauen (Modell blickt standardmäßig nach −z)
+    const dx = this.camera.position.x - root.position.x;
+    const dz = this.camera.position.z - root.position.z;
+    root.rotation.y = Math.atan2(-dx, -dz);
+    this.podium.model.animate(dt, want.emote, 1);
+    for (const r of this.runners.values()) r.model.root.visible = false;
   }
 
   private disposeRunner(r: RunnerEntry): void {

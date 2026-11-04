@@ -14,7 +14,7 @@ export interface RunnerColors {
   skin?: number;
 }
 
-export type RunnerAnim = RunnerPose | 'cheer' | 'blocked';
+export type RunnerAnim = RunnerPose | 'cheer' | 'blocked' | 'dance' | 'spin' | 'flex';
 
 export interface RunnerModel {
   root: THREE.Group;
@@ -178,6 +178,22 @@ export function createRunnerModel(colors: RunnerColors): RunnerModel {
           armSwing = 0.3;
           torsoRx = -0.25;
           break;
+        case 'dance':
+          torsoRz = Math.sin(phase * 0.7) * 0.28;
+          armRaise = -1.6;
+          armSwing = Math.sin(phase * 1.4) * 0.9;
+          legSwing = Math.sin(phase * 0.7) * 0.35;
+          bob = Math.abs(Math.sin(phase * 0.7)) * 0.12;
+          break;
+        case 'spin':
+          armRaise = -1.4;
+          bob = 0.05;
+          break;
+        case 'flex':
+          armRaise = -2.3;
+          torsoRx = 0.12;
+          bob = Math.abs(Math.sin(phase * 0.5)) * 0.06;
+          break;
         default:
           bob = Math.sin(phase * 0.3) * 0.02;
           break;
@@ -190,8 +206,12 @@ export function createRunnerModel(colors: RunnerColors): RunnerModel {
       smooth(legs[1]!, 'x', -legSwing + legBend, k);
       smooth(arms[0]!, 'x', armSwing + armRaise, k);
       smooth(arms[1]!, 'x', -armSwing + armRaise, k);
-      smooth(arms[0]!, 'z', armRaise !== 0 ? -0.25 : 0, k);
-      smooth(arms[1]!, 'z', armRaise !== 0 ? 0.25 : 0, k);
+      const armOut = anim === 'spin' ? 1.3 : anim === 'flex' ? 0.9 : armRaise !== 0 ? 0.25 : 0;
+      smooth(arms[0]!, 'z', -armOut, k);
+      smooth(arms[1]!, 'z', armOut, k);
+      // Drehen-Emote: der ganze Körper dreht sich
+      if (anim === 'spin') body.rotation.y += dt * 9;
+      else body.rotation.y += (0 - body.rotation.y) * k;
       head.rotation.z = Math.sin(phase * 0.5) * 0.05;
 
       if (flashT > 0) {

@@ -336,6 +336,7 @@ export class RemoteSession implements GameSession {
       id: p.id,
       name: p.name,
       colorIndex: p.color,
+      emote: p.emote ?? 'cheer',
       isBot: false,
       connected: connected.get(p.id) ?? false,
     }));
