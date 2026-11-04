@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { T } from '../i18n/de';
-import type { SceneStats } from '../game/testScene';
+import type { RenderStats as SceneStats } from '../game/GameRenderer';
 import { attachGestures } from '../input/gestures';
 import type { Gesture } from '../input/gestureRecognizer';
 import { audioSessionSupported, playBeep, playGlint, playShot, setIgnoreSilentSwitch, unlockAudio } from '../audio/synth';
 import { onWakeLockChange, requestWakeLock, wakeLockSupported } from '../platform/wakeLock';
 import { onUpdateAvailable, reloadForUpdate } from '../platform/updateCheck';
-import { isIOS, isStandalone } from '../platform/device';
+import { isStandalone } from '../platform/device';
 import { useServerTest } from './useServerTest';
-import { HomeScreenGuide, shouldAutoShowGuide } from './HomeScreenGuide';
+import { HomeScreenGuide } from './HomeScreenGuide';
 import { SafeAreaOverlay } from './SafeAreaOverlay';
 
 const GESTURE_TEXT: Record<Gesture, string> = {
@@ -21,15 +21,14 @@ const GESTURE_TEXT: Record<Gesture, string> = {
   tap: T.gestures.tap,
 };
 
-export function TestPage({ subscribeStats }: { subscribeStats: (cb: (s: SceneStats) => void) => () => void }) {
-  const ios = isIOS();
+export function TestPage({ subscribeStats, onBack }: { subscribeStats: (cb: (s: SceneStats) => void) => () => void; onBack: () => void }) {
   const standalone = isStandalone();
   const server = useServerTest();
   const [stats, setStats] = useState<SceneStats | null>(null);
   const [gesture, setGesture] = useState<{ g: Gesture; n: number } | null>(null);
   const [wakeActive, setWakeActive] = useState(false);
   const [showSafe, setShowSafe] = useState(false);
-  const [showGuide, setShowGuide] = useState(() => shouldAutoShowGuide(ios, standalone));
+  const [showGuide, setShowGuide] = useState(false);
   const [loudMode, setLoudMode] = useState(false);
   const [update, setUpdate] = useState(false);
   const padRef = useRef<HTMLDivElement>(null);
@@ -150,6 +149,10 @@ export function TestPage({ subscribeStats }: { subscribeStats: (cb: (s: SceneSta
             </button>
           )}
         </div>
+
+        <button class="btn" onClick={onBack}>
+          ← {T.settings.back}
+        </button>
 
         <div class={`status-line ${wakeActive ? 'ok' : 'muted'}`}>
           🔆 {T.wakeLock.label}:{' '}

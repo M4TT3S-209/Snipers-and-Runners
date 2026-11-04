@@ -59,6 +59,8 @@ export interface MatchOptions {
   allowedGadgets?: readonly GadgetId[];
   /** Phasenzeiten überschreiben (z. B. Übungsmodus ohne Wartezeiten) */
   loadoutS?: number;
+  /** Übungsmodus: nur ein Zug, danach Ergebnis */
+  singleTurn?: boolean;
 }
 
 export const DEFAULT_LOADOUT: Loadout = { weapon: 'precision', gadget: null };
@@ -87,6 +89,7 @@ export class MatchFlow {
   private events: MatchEvent[] = [];
   private readonly themes: readonly ThemeId[];
   private readonly loadoutTicks: number;
+  private readonly singleTurn: boolean;
 
   constructor(opts: MatchOptions) {
     if (opts.players.length < 2) throw new Error('Mindestens 2 Spieler');
@@ -95,6 +98,7 @@ export class MatchFlow {
     this.seed = opts.seed >>> 0;
     this.themes = opts.themes && opts.themes.length > 0 ? opts.themes : THEMES;
     this.loadoutTicks = secondsToTicks(opts.loadoutS ?? CONFIG.match.loadoutS);
+    this.singleTurn = opts.singleTurn ?? false;
     for (const p of this.players) {
       this.roundWins.set(p.id, 0);
       this.scores.set(p.id, 0);
@@ -195,6 +199,10 @@ export class MatchFlow {
   }
 
   private afterTurnResult(): void {
+    if (this.singleTurn) {
+      this.endMatch();
+      return;
+    }
     if (this.mode === 'duel' && this.plan.turnInRound === 1) {
       const [a, b] = this.records.slice(-2);
       const runA = a?.result.runs[0];

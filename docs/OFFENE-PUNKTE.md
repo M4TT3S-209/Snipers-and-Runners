@@ -1,0 +1,41 @@
+# Offene Punkte für dich
+
+Hier sammle ich alles, wofür ich **deine Entscheidung, deinen Test auf dem iPhone oder eine Einstellung von dir** brauche. Ich arbeite in der Zwischenzeit weiter. Wenn du Zeit hast, geh die Liste von oben nach unten durch und antworte einfach mit der Nummer, z. B. „3: Variante B fühlt sich besser an“.
+
+Legende: 🔧 = musst du tun · 🎮 = bitte testen und Meinung sagen · ❓ = Entscheidung
+
+---
+
+## Einrichtung (damit alles online geht)
+
+1. 🔧 **Repo umbenennen** in `runners-vs-snipers`: [docs/SETUP.md](SETUP.md), Teil A1
+2. 🔧 **GitHub Pages einschalten** (Source: „GitHub Actions“): SETUP.md, Teil A2
+3. 🔧 **Cloudflare-Konto anlegen**, Subdomain wählen, API-Token erstellen: SETUP.md, Teil B
+4. 🔧 **Zwei Secrets bei GitHub eintragen** (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`): SETUP.md, Teil C
+5. 🔧 **Ersten Deploy starten** (Actions → Deploy → Run workflow) und mir sagen, ob alles grün ist
+
+Solange 1–4 fehlen, laufen die Tests trotzdem bei jedem Push. Server und Spielseite werden dann nur übersprungen, mit einer gelben Warnung statt eines Fehlers.
+
+## Spielgefühl (M1 – Offline gegen Bots)
+
+6. 🎮 **Sniper-Steuerung**: In den Einstellungen gibt es zwei Varianten:
+   - **A) „Ziehen + Feuer-Knopf“** (Standard)
+   - **B) „Halten, ziehen, loslassen“**: Finger aufsetzen = Zielfernrohr an, loslassen = Schuss
+
+   Welche fühlt sich besser an? Die bessere wird Standard.
+7. 🎮 **Kugel-Tempo und Vorhalten**: Das Präzisionsgewehr fliegt mit 180 m/s, über die ganze Strecke ca. 1,2 s. Zu leicht oder zu schwer? Mit `?debug=1` hinter der Adresse kannst du es im Spiel live verstellen (🛠-Knopf) und mir die Werte über „Werte kopieren“ schicken.
+8. 🎮 **Empfindlichkeit beim Zielen**: Standardwert passend? (Einstellungen → Ziel-Empfindlichkeit)
+9. 🎮 **Gyroskop-Zielen** (Einstellungen → An): brauchbar oder eher störend?
+10. 🎮 **Bot-Stärke**: Ist „Mittel“ ein guter Gegner?
+    - Meine Messung mit Bots gegeneinander (Bot-Läufer gegen Bot-Sniper, beide „Mittel“): ca. 40 % der Läufer kommen ins Ziel.
+    - Ein sauberer Lauf ohne Sniper dauert im Schnitt 30,8 s (Ziel waren ca. 30 s ✔).
+11. 🎮 **Wischgesten**: Werden Wischer zuverlässig erkannt? Ist „Halten = Ducken“ (nach 0,17 s) zu schnell oder zu langsam?
+
+## Beobachtungen beim Balancing (zur Info, keine Antwort nötig)
+
+- Der Turm ist hoch, die Kugeln kommen deshalb recht flach. Fehler nach vorn oder hinten verzeiht das Spiel, Fehler zur Seite und in der Höhe kaum. Ausweichen per **Spurwechsel** ist für Läufer deshalb die wichtigste Verteidigung, neben Deckung. Ich finde das gut so. Falls dir Treffen zu leicht vorkommt, wären die Stellschrauben: Kugel langsamer machen oder mehr Wackeln im Zielfernrohr.
+
+## Später (wenn wir dort ankommen)
+
+- ❓ Party-Modus: Sollen Läufer sich gegenseitig sehen und überholen können? Geplant ist ja (als halb durchsichtige Figuren).
+- ❓ Namensfilter: Gibt es Wörter, die in eurem Freundeskreis auf keinen Fall als Name gehen sollen (oder gerade unbedingt erlaubt sein müssen)?

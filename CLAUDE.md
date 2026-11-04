@@ -71,12 +71,24 @@ Versionen (bewusst gewählt):
 ## Aktueller Stand
 - [x] Plan erstellt (PLAN.md) und vom Nutzer freigegeben (nur iPhone, Repo-Name `runners-vs-snipers`)
 - [x] M0 Grundgerüst + Deploy-Pipeline + Testseite (Code fertig, lokal getestet). Wartet auf die Einrichtung durch den Nutzer (SETUP.md) und den iPhone-Test.
-- [ ] M1 Offline-Prototyp gegen Bots
+- [x] M1 Offline-Prototyp gegen Bots (Duell Best of 3, Übung Läufer/Sniper, Klassik mit Bots, alle Waffen/Gadgets, 5 Themen, Debug-Regler). Wartet auf das iPhone-Feedback des Nutzers (docs/OFFENE-PUNKTE.md).
 - [ ] M2 Online-1v1 per Raum-Link
 - [ ] M3 Konten, Freunde, Herausforderungen, Party-Lobby
 - [ ] M4 Waffen/Gadgets, Streckengenerator, Klassik
 - [ ] M5 Feinschliff, Trophäen, Statistiken, Tutorial
 - [ ] M6 (optional) Web-Push
+
+## Arbeitsweise (vom Nutzer gewünscht)
+- Durcharbeiten, ohne nach jedem Meilenstein auf Feedback zu warten.
+- Alles, was Entscheidung, Test oder Einstellung des Nutzers braucht, kommt nach `docs/OFFENE-PUNKTE.md`.
+
+## Architektur-Notizen Client
+- `GameHost` (ein WebGL-Kontext): Renderer, Spielschleife, Kamera, Eingaben, Sounds.
+- `GameSession`-Schnittstelle (`client/src/game/view.ts`):
+  - `LocalSession` (offline, MatchFlow + BotDriver)
+  - `RemoteSession` (online, ab M2)
+- HUD in Preact liest ca. 11× pro Sekunde einen Schnappschuss (`useHud`). Die 3D-Szene läuft pro Frame.
+- Im Menü läuft im Hintergrund eine Demo (zwei Bots, `LocalSession` mit mode `demo`).
 
 ## Entscheidungen und Erkenntnisse (laufend ergänzen)
 - iOS kopiert beim „Zum Home-Bildschirm“ (ab 17.2) nur **Cookies** aus Safari, nicht localStorage. Darum liegt das Konto-Token in beiden. Fallback ist die Netzwerk-Kopplung (gleiche IP, 10 min, Bestätigung per Tipp), danach der Übertragungscode.

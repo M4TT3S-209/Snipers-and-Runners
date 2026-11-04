@@ -59,16 +59,25 @@ export type MoveEvent = 'jump' | 'slide' | 'land' | 'trip' | 'fall' | 'pad' | 'b
 
 const R = CONFIG.runner;
 const DT = 1 / CONFIG.sim.hz;
-/** Schwerkraft aus Sprunghöhe und Flugzeit: g = 8h/T² */
-export const GRAVITY = (8 * R.jumpHeight) / (R.jumpAirS * R.jumpAirS);
-export const JUMP_VY = Math.sqrt(2 * GRAVITY * R.jumpHeight);
-export const PAD_VY = Math.sqrt(2 * GRAVITY * R.padJumpHeight);
-const LANE_SPEED = CONFIG.track.laneWidth / R.laneChangeS;
-const SLIDE_TICKS = secondsToTicks(R.slideS);
-const STUMBLE_TICKS = secondsToTicks(R.stumbleS);
-const RESPAWN_TICKS = secondsToTicks(R.fallRespawnS);
-const COYOTE_TICKS = secondsToTicks(R.coyoteS);
-const JUMP_BUFFER_TICKS = secondsToTicks(R.jumpBufferS);
+/** Schwerkraft aus Sprunghöhe und Flugzeit: g = 8h/T² (live aus der Config, für ?debug=1) */
+export function gravity(): number {
+  return (8 * R.jumpHeight) / (R.jumpAirS * R.jumpAirS);
+}
+export function jumpVy(): number {
+  return Math.sqrt(2 * gravity() * R.jumpHeight);
+}
+export function padVy(): number {
+  return Math.sqrt(2 * gravity() * R.padJumpHeight);
+}
+/** Für Tests/Anzeige: Werte zum aktuellen Stand der Config */
+export const GRAVITY = gravity();
+export const JUMP_VY = jumpVy();
+const laneSpeed = () => CONFIG.track.laneWidth / R.laneChangeS;
+const slideTicks = () => secondsToTicks(R.slideS);
+const stumbleTicks = () => secondsToTicks(R.stumbleS);
+const respawnTicks = () => secondsToTicks(R.fallRespawnS);
+const coyoteTicks = () => secondsToTicks(R.coyoteS);
+const jumpBufferTicks = () => secondsToTicks(R.jumpBufferS);
 
 export function createRunner(id: string, gadget: GadgetId | null = null): RunnerState {
   return {
@@ -167,14 +176,14 @@ export function applyMoveAction(m: RunnerMove, action: RunnerAction, ctx: MoveCo
     }
     case 'jump':
       if (m.grounded || m.coyoteTicks > 0) {
-        doJump(m, JUMP_VY);
+        doJump(m, jumpVy());
         return 'jump';
       }
-      m.jumpBufferTicks = JUMP_BUFFER_TICKS;
+      m.jumpBufferTicks = jumpBufferTicks();
       return null;
     case 'slide':
       if (m.grounded) {
-        m.slideTicks = SLIDE_TICKS;
+        m.slideTicks = slideTicks();
         return 'slide';
       }
       if (m.vy > R.airSlideVy) m.vy = R.airSlideVy;
@@ -229,7 +238,7 @@ export function stepMove(m: RunnerMove, ctx: MoveContext, events?: MoveEvent[]):
   // Seitlich zur Ziel-Spur
   const tx = laneX(m.lane);
   const dx = tx - m.x;
-  const maxStep = LANE_SPEED * DT;
+  const maxStep = laneSpeed() * DT;
   m.x += dx > maxStep ? maxStep : dx < -maxStep ? -maxStep : dx;
 
   // Vorwärts
@@ -259,7 +268,7 @@ export function stepMove(m: RunnerMove, ctx: MoveContext, events?: MoveEvent[]):
   for (const trip of tripsNear(ctx.track, m.x, m.z - R.radius, m.z + R.radius)) {
     if (trip.id !== m.lastTripId && m.y < trip.y1 && top > trip.y0) {
       m.lastTripId = trip.id;
-      m.stumbleTicks = STUMBLE_TICKS;
+      m.stumbleTicks = stumbleTicks();
       m.slideTicks = 0;
       events?.push('trip');
     }
@@ -270,7 +279,7 @@ export function stepMove(m: RunnerMove, ctx: MoveContext, events?: MoveEvent[]):
   if (m.grounded) {
     if (ground === NO_GROUND || ground < m.y - R.stepUpM) {
       m.grounded = false;
-      m.coyoteTicks = COYOTE_TICKS;
+      m.coyoteTicks = coyoteTicks();
       m.vy = 0;
     } else {
       m.y = ground;
@@ -278,8 +287,9 @@ export function stepMove(m: RunnerMove, ctx: MoveContext, events?: MoveEvent[]):
   }
   if (!m.grounded) {
     // Exakt für konstante Schwerkraft (sonst wird der Sprung zu niedrig)
-    m.y += m.vy * DT - 0.5 * GRAVITY * DT * DT;
-    m.vy -= GRAVITY * DT;
+    const g = gravity();
+    m.y += m.vy * DT - 0.5 * g * DT * DT;
+    m.vy -= g * DT;
     ground = groundAt(ctx.track, m.x, m.z, ctx.tick, ctx.coverAlive, m.y + 0.6);
     if (ground !== NO_GROUND && m.y <= ground && m.vy <= 0) {
       m.y = ground;
@@ -287,17 +297,17 @@ export function stepMove(m: RunnerMove, ctx: MoveContext, events?: MoveEvent[]):
       m.grounded = true;
       events?.push('land');
       if (m.jumpBufferTicks > 0) {
-        doJump(m, JUMP_VY);
+        doJump(m, jumpVy());
         events?.push('jump');
       } else if (m.slideOnLand) {
         m.slideOnLand = false;
-        m.slideTicks = SLIDE_TICKS;
+        m.slideTicks = slideTicks();
       }
     } else if (m.y < -2.5) {
       // In ein Loch gefallen → kurz warten, dann vor dem Loch neu starten
       const hole = holeAt(ctx.track, m.lane, m.z) ?? { z0: m.z, z1: m.z };
       m.phase = 'respawning';
-      m.respawnTicks = RESPAWN_TICKS;
+      m.respawnTicks = respawnTicks();
       m.respawnZ = Math.max(0, hole.z0 - 1.5);
       m.duckHeld = false;
       events?.push('fall');
@@ -307,7 +317,7 @@ export function stepMove(m: RunnerMove, ctx: MoveContext, events?: MoveEvent[]):
 
   // Sprungpad
   if (m.grounded && m.y < 0.05 && padAt(ctx.track, m.x, m.z)) {
-    doJump(m, PAD_VY);
+    doJump(m, padVy());
     events?.push('pad');
   }
 
