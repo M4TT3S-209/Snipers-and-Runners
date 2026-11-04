@@ -3,6 +3,7 @@ import { HEARTBEAT_PING, HEARTBEAT_PONG, type AuthInfo } from '@scope-rush/share
 import type { Env } from '../env';
 import type { MatchSummary } from '../room/RoomCore';
 import { HubCore, type HubConn, type Sql, type SqlValue } from './HubCore';
+import { generateVapidKeys, sendPush } from '../push/webpush';
 
 /**
  * HubDO – genau eine Instanz („global“): Konten, Freunde, Online-Status,
@@ -40,6 +41,8 @@ export class HubDO extends DurableObject<Env> {
       setupRoom: async (roomId, setup) => {
         await env.ROOM.get(env.ROOM.idFromName(roomId)).configure(roomId, setup);
       },
+      generateVapid: () => generateVapidKeys(),
+      sendPush: (sub, payload, keys) => sendPush(sub, payload, keys, `${(env.ALLOWED_ORIGINS.split(',')[0] ?? '').trim()}/`),
       scheduleAlarm: (at) => {
         void ctx.storage.getAlarm().then((current) => {
           if (current === null || current > at) void ctx.storage.setAlarm(at);

@@ -76,7 +76,7 @@ Versionen (bewusst gewählt):
 - [x] M3 Konten (Name#Tag, Geräte-Tokens, Cookie, Kopplung, Übertragungscode/QR), Freunde (Link/QR/Name#Tag), Status, Herausforderung mit Pop-up + Posteingang, Party-Lobby mit Einladungen, Statistik. Lokal mit 2 Browsern getestet.
 - [x] M4 Waffen/Gadgets (mit Auswahl), Streckengenerator (13 Segmente, 5 Themen), Klassik online (3–8 Spieler, 1–2 Sniper, Zuschauen durchs Zielfernrohr), 1v1 mit Zuschauern (Sieger bleibt)
 - [x] M5 Bullet-Cam (Zeitlupe beim Ausscheiden), Trophäen + Freischaltungen (`shared/src/unlocks.ts`: Themen, Waffen, Gadgets, Farben, Jubel), Aussehen-Bildschirm, Sieger-Podium mit Jubel, Mitmach-Tutorial, Statistik (M3). Sounds/Effekte seit M1.
-- [ ] M6 (optional) Web-Push
+- [x] M6 Web-Push bei Herausforderungen an nicht verbundene Freunde (RFC 8291 + VAPID im Worker, Schlüssel erzeugt der Hub selbst, Test gegen RFC-Testvektor). Nur in der Home-Bildschirm-App (iOS).
 
 ## Arbeitsweise (vom Nutzer gewünscht)
 - Durcharbeiten, ohne nach jedem Meilenstein auf Feedback zu warten.
@@ -99,6 +99,12 @@ Versionen (bewusst gewählt):
 - Hub-Logik in `server/src/hub/HubCore.ts` (SQL-Schnittstelle, in Tests `node:sqlite`), `HubDO` ist Adapter. Mehrere Geräte-Tokens pro Konto (Tabelle `tokens`), nur SHA-256-Hashes gespeichert.
 - Hub ↔ Room per DO-RPC: `room.configure()` (Herausforderung/Party), `hub.authenticate()`, `hub.setInMatch()`, `hub.reportMatch()`.
 - Server-Tests haben eine eigene `server/test/tsconfig.json` (Node-Typen), der Server-Code nutzt Worker-Typen.
+
+## Push
+- `server/src/push/webpush.ts`: Verschlüsselung (aes128gcm) + VAPID mit WebCrypto. ECDH-Parameter mit `public` UND `$public` (Cloudflare-Typen nennen es `$public`).
+- VAPID-Schlüssel erzeugt der Hub beim ersten Bedarf und speichert sie in `meta` – kein Secret nötig.
+- Nur bekannte Push-Dienste werden angeschrieben (`isAllowedEndpoint`). 404/410 → Abo löschen.
+- Lokaler Selbsttest in workerd: `GET /dev/pushtest` (nur ENVIRONMENT=dev).
 
 ## Freischaltungen
 - Tabelle in `shared/src/unlocks.ts`. Online zählen die Trophäen des Kontos (Hub), ohne Server lokale Trophäen aus Bot-Duellen (`settings.localTrophies`, halber Wert).

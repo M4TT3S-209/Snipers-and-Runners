@@ -99,6 +99,9 @@ export type HubClientMessage =
   | { t: 'partyRespond'; id: string; accept: boolean }
   | { t: 'stats' }
   | { t: 'cosmetics'; skin: number; emote: EmoteId }
+  | { t: 'pushKey' }
+  | { t: 'pushSubscribe'; endpoint: string; p256dh: string; auth: string }
+  | { t: 'pushUnsubscribe'; endpoint: string }
   | { t: 'echo'; c: number };
 
 // ---------------------------------------------------------------- Hub → Client
@@ -131,6 +134,8 @@ export type HubServerMessage =
       server: string;
     }
   | { t: 'profile'; profile: Profile }
+  | { t: 'pushKey'; key: string }
+  | { t: 'pushStatus'; subscribed: boolean }
   | { t: 'needAccount'; protocol: number; server: string }
   | { t: 'account'; me: AccountInfo; token: string }
   | { t: 'friends'; friends: FriendInfo[]; incoming: AccountInfo[]; outgoing: AccountInfo[] }

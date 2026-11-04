@@ -39,6 +39,8 @@ export interface HubState {
   transfer: { code: string; expiresAt: number } | null;
   stats: StatsInfo | null;
   profile: Profile | null;
+  pushKey: string | null;
+  pushSubscribed: boolean | null;
   lastError: { code: HubErrorCode; ctx?: string; at: number } | null;
   toast: { text: string; at: number } | null;
 }
@@ -65,6 +67,8 @@ export class HubClient {
     transfer: null,
     stats: null,
     profile: null,
+    pushKey: null,
+    pushSubscribed: null,
     lastError: null,
     toast: null,
   };
@@ -168,6 +172,30 @@ export class HubClient {
   loadStats(): void {
     this.send({ t: 'stats' });
   }
+  /** Öffentlicher Push-Schlüssel des Servers (wartet höchstens 6 s) */
+  getPushKey(): Promise<string | null> {
+    if (this.state.pushKey) return Promise.resolve(this.state.pushKey);
+    this.send({ t: 'pushKey' });
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        off();
+        resolve(null);
+      }, 6000);
+      const off = this.on(() => {
+        if (this.state.pushKey) {
+          clearTimeout(timer);
+          off();
+          resolve(this.state.pushKey);
+        }
+      });
+    });
+  }
+  subscribePush(endpoint: string, p256dh: string, auth: string): void {
+    this.send({ t: 'pushSubscribe', endpoint, p256dh, auth });
+  }
+  unsubscribePush(endpoint: string): void {
+    this.send({ t: 'pushUnsubscribe', endpoint });
+  }
   setCosmetics(c: Cosmetics): void {
     this.send({ t: 'cosmetics', skin: c.skin, emote: c.emote });
   }
@@ -200,6 +228,12 @@ export class HubClient {
         break;
       case 'profile':
         this.set({ profile: m.profile });
+        break;
+      case 'pushKey':
+        this.set({ pushKey: m.key });
+        break;
+      case 'pushStatus':
+        this.set({ pushSubscribed: m.subscribed });
         break;
       case 'friends':
         this.set({ friends: m.friends, incoming: m.incoming, outgoing: m.outgoing });

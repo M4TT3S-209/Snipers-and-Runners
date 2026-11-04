@@ -53,6 +53,7 @@ class Client implements HubConn {
 function setup() {
   let now = 1_800_000_000_000;
   const rooms: Array<{ roomId: string; setup: RoomSetup }> = [];
+  const pushes: Array<{ endpoint: string; payload: { title: string } }> = [];
   const alarms: number[] = [];
   const hub = new HubCore(memorySql(), {
     buildId: 'test',
@@ -63,6 +64,11 @@ function setup() {
       rooms.push({ roomId, setup });
     },
     scheduleAlarm: (at) => alarms.push(at),
+    generateVapid: async () => ({ publicKey: 'TESTKEY', privateJwk: {} }),
+    sendPush: async (sub, payload) => {
+      pushes.push({ endpoint: sub.endpoint, payload: payload as { title: string } });
+      return sub.endpoint.endsWith('/gone') ? 'gone' : 'ok';
+    },
   });
   hub.init();
   const account = async (name: string, ip = '1.2.3.4') => {
@@ -70,7 +76,7 @@ function setup() {
     await c.msg({ t: 'createAccount', name });
     return c;
   };
-  return { hub, rooms, alarms, account, advance: (ms: number) => (now += ms), now: () => now };
+  return { hub, rooms, alarms, pushes, account, advance: (ms: number) => (now += ms), now: () => now };
 }
 
 async function befriend(_s: ReturnType<typeof setup>, a: Client, b: Client) {
@@ -352,5 +358,32 @@ describe('Hub: Aussehen & Trophäen', () => {
     expect(max.last('profile')!.profile.trophies).toBe(2 * CONFIG.trophies.win);
     const auth = await s.hub.authenticate(max.token);
     expect(auth).toMatchObject({ name: 'Max', trophies: 2 * CONFIG.trophies.win, cosmetics: { skin: 1 } });
+  });
+});
+
+describe('Hub: Push', () => {
+  it('Herausforderung an einen nicht verbundenen Freund → Mitteilung; abgelaufene Abos werden gelöscht', async () => {
+    const s = setup();
+    const max = await s.account('Max', '1.1.1.1');
+    const lena = await s.account('Lena', '2.2.2.2');
+    await befriend(s, max, lena);
+    await lena.msg({ t: 'pushKey' });
+    expect(lena.last('pushKey')!.key).toBe('TESTKEY');
+    const p256dh = 'B' + 'x'.repeat(86);
+    await lena.msg({ t: 'pushSubscribe', endpoint: 'https://web.push.apple.com/abc', p256dh, auth: 'y'.repeat(22) });
+    await lena.msg({ t: 'pushSubscribe', endpoint: 'https://web.push.apple.com/gone', p256dh, auth: 'y'.repeat(22) });
+    expect(lena.last('pushStatus')!.subscribed).toBe(true);
+    // Online → kein Push
+    await max.msg({ t: 'challenge', friendId: lena.accountId });
+    expect(s.pushes).toHaveLength(0);
+    // Offline → Push an beide Geräte
+    s.hub.detach(lena);
+    await max.msg({ t: 'challenge', friendId: lena.accountId });
+    expect(s.pushes.map((p) => p.endpoint).sort()).toEqual(['https://web.push.apple.com/abc', 'https://web.push.apple.com/gone']);
+    expect(s.pushes[0]!.payload.title).toContain('Max');
+    // „gone“ wurde gelöscht → beim nächsten Mal nur noch eins
+    s.pushes.length = 0;
+    await max.msg({ t: 'challenge', friendId: lena.accountId });
+    expect(s.pushes.map((p) => p.endpoint)).toEqual(['https://web.push.apple.com/abc']);
   });
 });

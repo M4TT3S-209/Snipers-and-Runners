@@ -34,6 +34,15 @@ export default {
       return new Response('ok', { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
     }
 
+    // Nur lokal: Selbsttest der Push-Verschlüsselung in der echten Workers-Laufzeit
+    if (url.pathname === '/dev/pushtest' && env.ENVIRONMENT === 'dev') {
+      const { encryptPayload, b64urlEncode } = await import('./push/webpush');
+      const ua = (await crypto.subtle.generateKey({ name: 'ECDH', namedCurve: 'P-256' }, true, ['deriveBits'])) as CryptoKeyPair;
+      const pub = b64urlEncode(new Uint8Array((await crypto.subtle.exportKey('raw', ua.publicKey)) as ArrayBuffer));
+      const body = await encryptPayload({ p256dh: pub, auth: b64urlEncode(crypto.getRandomValues(new Uint8Array(16))) }, new Uint8Array(new TextEncoder().encode('hallo')));
+      return new Response(`ok ${body.length}`);
+    }
+
     if (url.pathname === '/version') {
       const body: VersionInfo = { protocol: PROTOCOL_VERSION, server: env.BUILD_ID };
       const headers: Record<string, string> = {

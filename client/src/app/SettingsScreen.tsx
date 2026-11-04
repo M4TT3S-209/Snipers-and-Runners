@@ -5,6 +5,8 @@ import type { HubClient } from '../account/HubClient';
 import { useHubOrNull } from './useHub';
 import { QrCode } from './QrCode';
 import { appLink } from './share';
+import { useEffect } from 'preact/hooks';
+import { currentPushSubscription, disablePush, enablePush, pushNeedsHomeScreen } from '../platform/push';
 import { audioSessionSupported, setIgnoreSilentSwitch, setVolume } from '../audio/synth';
 import { requestGyroPermission } from '../input/sniperControls';
 import { getSettings, updateSettings, type Settings } from './settings';
@@ -16,6 +18,11 @@ export function SettingsScreen({ hub, onBack, onDeviceTest }: { hub: HubClient |
   const account = hubState && typeof hubState.account === 'object' ? hubState.account : null;
   const [code, setCode] = useState('');
   const [showTransfer, setShowTransfer] = useState(false);
+  const [pushOn, setPushOn] = useState(false);
+  const [pushMsg, setPushMsg] = useState('');
+  useEffect(() => {
+    void currentPushSubscription().then((sub) => setPushOn(sub !== null));
+  }, []);
   const set = (patch: Partial<Settings>) => {
     updateSettings(patch);
     setS(getSettings());
@@ -65,6 +72,32 @@ export function SettingsScreen({ hub, onBack, onDeviceTest }: { hub: HubClient |
             <span>{hub ? T.settings.name : T.account.offlineName}</span>
             <input value={s.name} maxLength={14} onChange={(e) => set({ name: (e.target as HTMLInputElement).value.trim().slice(0, 14) })} />
           </label>
+        )}
+
+        {hub && account && (
+          <div class="setting">
+            <span>{T.push.label}</span>
+            <small class="muted">{pushNeedsHomeScreen() ? T.push.needsApp : T.push.hint}</small>
+            <button
+              class={`btn small ${pushOn ? 'on' : ''}`}
+              disabled={pushNeedsHomeScreen()}
+              onClick={async () => {
+                if (pushOn) {
+                  await disablePush(hub);
+                  setPushOn(false);
+                  return;
+                }
+                const r = await enablePush(hub);
+                if (r === 'ok') {
+                  setPushOn(true);
+                  setPushMsg('');
+                } else setPushMsg(T.push[r]);
+              }}
+            >
+              {pushOn ? T.push.on : T.push.off}
+            </button>
+            {pushMsg && <small class="bad">{pushMsg}</small>}
+          </div>
         )}
 
         {hub && !account && (

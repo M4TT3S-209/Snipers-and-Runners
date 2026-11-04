@@ -302,6 +302,17 @@ export const T = {
     offlineName: 'Offline-Name (kein Server)',
   },
 
+  push: {
+    label: '🔔 Mitteilung bei Herausforderungen',
+    hint: 'Kommt auch, wenn die App geschlossen ist.',
+    needsApp: 'Geht auf dem iPhone nur in der App vom Home-Bildschirm.',
+    denied: 'Mitteilungen sind nicht erlaubt – in den iPhone-Einstellungen unter „Mitteilungen“ für Scope Rush aktivieren.',
+    unsupported: 'Dieses Gerät unterstützt keine Mitteilungen.',
+    error: 'Hat nicht geklappt – später nochmal versuchen.',
+    on: 'An',
+    off: 'Aus',
+  },
+
   stats: {
     title: 'Statistik',
     wins: 'Siege',

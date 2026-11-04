@@ -54,6 +54,14 @@ Solange 1–4 fehlen, laufen die Tests trotzdem bei jedem Push. Server und Spiel
 19. ❓ **Freischaltungen**: Halbautomatik, Rauch, Raketenwerfer und Köder werden mit 10–40 Trophäen frei (ca. 2–5 Matches). Sollen Waffen und Gadgets **online von Anfang an für alle frei** sein, damit es unter Freunden 100 % fair ist? Dann blieben nur Themen, Farben und Jubel zum Freischalten.
 20. 🎮 **Tutorial**: Im Menü „🎓 Tutorial“. Verständlich genug für Freunde, die das Spiel nicht kennen?
 
+## Mitteilungen (M6)
+
+21. 🎮 **Push testen** (nur in der App vom Home-Bildschirm):
+    1. Einstellungen → „🔔 Mitteilung bei Herausforderungen“ → An → Mitteilungen erlauben
+    2. App ganz schließen (nach oben wischen)
+    3. Ein Freund fordert dich heraus → auf dem Sperrbildschirm sollte „… fordert dich heraus! ⚔️“ erscheinen
+    4. Antippen → App öffnet sich, die Herausforderung wartet (5 Minuten)
+
 ## Beobachtungen beim Balancing (zur Info, keine Antwort nötig)
 
 - Der Turm ist hoch, die Kugeln kommen deshalb recht flach. Fehler nach vorn oder hinten verzeiht das Spiel, Fehler zur Seite und in der Höhe kaum. Ausweichen per **Spurwechsel** ist für Läufer deshalb die wichtigste Verteidigung, neben Deckung. Ich finde das gut so. Falls dir Treffen zu leicht vorkommt, wären die Stellschrauben: Kugel langsamer machen oder mehr Wackeln im Zielfernrohr.

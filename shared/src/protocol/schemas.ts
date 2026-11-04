@@ -90,6 +90,14 @@ export const HubClientSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('partyRespond'), id, accept: z.boolean() }),
   z.object({ t: z.literal('stats') }),
   z.object({ t: z.literal('cosmetics'), skin: num.int().min(0).max(7), emote: z.enum(['cheer', 'dance', 'spin', 'flex']) }),
+  z.object({ t: z.literal('pushKey') }),
+  z.object({
+    t: z.literal('pushSubscribe'),
+    endpoint: z.string().url().max(800),
+    p256dh: z.string().regex(/^[A-Za-z0-9_-]{80,100}$/),
+    auth: z.string().regex(/^[A-Za-z0-9_-]{16,30}$/),
+  }),
+  z.object({ t: z.literal('pushUnsubscribe'), endpoint: z.string().max(800) }),
   z.object({ t: z.literal('echo'), c: num }),
 ]);
 

@@ -18,6 +18,7 @@ import {
 import { parseHubMessage } from '@scope-rush/shared/schemas';
 import { takeToken, type BucketState } from '../util/rateLimit';
 import type { MatchSummary } from '../room/RoomCore';
+import type { PushResult, PushSubscriptionData, VapidKeys } from '../push/webpush';
 
 /**
  * Hub-Logik (Konten, Freunde, Status, Herausforderungen, Partys, Statistik)
@@ -54,6 +55,9 @@ export interface HubHooks {
   sha256(text: string): Promise<string>;
   setupRoom(roomId: string, setup: RoomSetup): Promise<void>;
   scheduleAlarm(at: number): void;
+  /** Push (optional): Schlüssel erzeugen + Nachricht schicken */
+  generateVapid?(): Promise<VapidKeys>;
+  sendPush?(sub: PushSubscriptionData, payload: object, keys: VapidKeys): Promise<PushResult>;
 }
 
 const MIN = 60_000;
@@ -93,6 +97,7 @@ const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS match_players (match_id TEXT NOT NULL, account_id TEXT NOT NULL, result TEXT NOT NULL, points INTEGER NOT NULL, trophies_delta INTEGER NOT NULL, PRIMARY KEY (match_id, account_id))`,
   `CREATE TABLE IF NOT EXISTS unlocks (account_id TEXT NOT NULL, item_id TEXT NOT NULL, unlocked_at INTEGER NOT NULL, PRIMARY KEY (account_id, item_id))`,
   `CREATE TABLE IF NOT EXISTS ip_limits (ip_hash TEXT NOT NULL, day INTEGER NOT NULL, kind TEXT NOT NULL, count INTEGER NOT NULL, PRIMARY KEY (ip_hash, day, kind))`,
+  `CREATE TABLE IF NOT EXISTS push_subscriptions (endpoint TEXT PRIMARY KEY, account_id TEXT NOT NULL, p256dh TEXT NOT NULL, auth TEXT NOT NULL, created_at INTEGER NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS idx_mp_account ON match_players (account_id)`,
   `CREATE INDEX IF NOT EXISTS idx_challenges_to ON challenges (to_id, status)`,
   `CREATE INDEX IF NOT EXISTS idx_pairings_ip ON pairings (ip_hash)`,
@@ -282,7 +287,8 @@ export class HubCore {
         this.pushFriends(msg.id);
         return;
       case 'challenge':
-        return this.challenge(conn, me, msg.friendId);
+        this.challenge(conn, me, msg.friendId);
+        return this.pushIfOffline(msg.friendId, me);
       case 'challengeRespond':
         return this.challengeRespond(conn, me, msg.id, msg.accept);
       case 'challengeCancel':
@@ -295,6 +301,26 @@ export class HubCore {
         return this.partyRespond(conn, me, msg.id, msg.accept);
       case 'stats':
         return this.send(conn, { t: 'stats', stats: this.stats(me) });
+      case 'pushKey': {
+        const keys = await this.vapid();
+        if (keys) this.send(conn, { t: 'pushKey', key: keys.publicKey });
+        return;
+      }
+      case 'pushSubscribe': {
+        this.sql.exec(
+          `INSERT INTO push_subscriptions (endpoint, account_id, p256dh, auth, created_at) VALUES (?, ?, ?, ?, ?)
+           ON CONFLICT (endpoint) DO UPDATE SET account_id = excluded.account_id, p256dh = excluded.p256dh, auth = excluded.auth`,
+          msg.endpoint,
+          me,
+          msg.p256dh,
+          msg.auth,
+          this.now(),
+        );
+        return this.send(conn, { t: 'pushStatus', subscribed: true });
+      }
+      case 'pushUnsubscribe':
+        this.sql.exec(`DELETE FROM push_subscriptions WHERE endpoint = ? AND account_id = ?`, msg.endpoint, me);
+        return this.send(conn, { t: 'pushStatus', subscribed: false });
       case 'cosmetics': {
         const trophies = this.profile(me).trophies;
         const c = sanitizeCosmetics({ skin: msg.skin, emote: msg.emote }, trophies);
@@ -636,6 +662,38 @@ export class HubCore {
       if (!from || !to) return [];
       return [{ id: String(r.id), from, to, mode: 'duel' as const, createdAt: Number(r.created_at), expiresAt: Number(r.expires_at) }];
     });
+  }
+
+  // ------------------------------------------------------------------ Push
+
+  private async vapid(): Promise<VapidKeys | null> {
+    const row = this.sql.exec(`SELECT value FROM meta WHERE key = 'vapid'`)[0];
+    if (row) return JSON.parse(String(row.value)) as VapidKeys;
+    if (!this.hooks.generateVapid) return null;
+    const keys = await this.hooks.generateVapid();
+    // Falls parallel schon jemand Schlüssel angelegt hat, die vorhandenen nehmen
+    this.sql.exec(`INSERT OR IGNORE INTO meta (key, value) VALUES ('vapid', ?)`, JSON.stringify(keys));
+    const stored = this.sql.exec(`SELECT value FROM meta WHERE key = 'vapid'`)[0];
+    return stored ? (JSON.parse(String(stored.value)) as VapidKeys) : keys;
+  }
+
+  /** Herausforderung an jemanden, der gerade nicht verbunden ist → Mitteilung aufs Handy */
+  private async pushIfOffline(friendId: string, fromId: string): Promise<void> {
+    if (!this.hooks.sendPush || this.byAccount.has(friendId) || !this.areFriends(friendId, fromId)) return;
+    const subs = this.sql.exec(`SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE account_id = ?`, friendId);
+    if (subs.length === 0) return;
+    const keys = await this.vapid();
+    const from = this.account(fromId);
+    if (!keys || !from) return;
+    const payload = {
+      title: `${from.name} fordert dich heraus! ⚔️`,
+      body: `Tippe zum Annehmen – die Herausforderung wartet ${CONFIG.social.inboxTtlMin} Minuten.`,
+      tag: `challenge-${fromId}`,
+    };
+    for (const s of subs) {
+      const result = await this.hooks.sendPush({ endpoint: String(s.endpoint), p256dh: String(s.p256dh), auth: String(s.auth) }, payload, keys);
+      if (result === 'gone') this.sql.exec(`DELETE FROM push_subscriptions WHERE endpoint = ?`, String(s.endpoint));
+    }
   }
 
   // ------------------------------------------------------------------ Party

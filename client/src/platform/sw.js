@@ -61,3 +61,35 @@ self.addEventListener('fetch', (event) => {
     ),
   );
 });
+
+// ---------------------------------------------------------------- Push (Herausforderungen)
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'Scope Rush', body: '', tag: 'scope-rush' };
+  try {
+    data = { ...data, ...event.data.json() };
+  } catch {
+    // leere oder kaputte Nachricht → Standardtext
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      tag: data.tag,
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      renotify: true,
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) {
+        if ('focus' in c) return c.focus();
+      }
+      return self.clients.openWindow(self.registration.scope);
+    }),
+  );
+});
