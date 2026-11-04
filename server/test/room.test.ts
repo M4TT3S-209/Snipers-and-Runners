@@ -120,7 +120,8 @@ describe('Raum: Match', () => {
   it('Eingaben des Läufers mit Tick-Stempel werden angewendet', () => {
     const s = setup();
     startMatch(s);
-    s.advance(14000);
+    // direkt nach dem Start: Der Startbereich ist immer frei von Hindernissen
+    while (s.core.flow!.phase !== 'running') s.advance(50);
     const turn = s.core.flow!.turn!;
     const runnerId = turn.runners[0]!.id;
     const runner = runnerId === s.a.memberId ? s.a : s.b;
@@ -132,7 +133,7 @@ describe('Raum: Match', () => {
   it('Schuss des Snipers trifft den (duckenden) Läufer', () => {
     const s = setup();
     startMatch(s);
-    s.advance(13000);
+    while (s.core.flow!.phase !== 'running') s.advance(50);
     const turn = s.core.flow!.turn!;
     expect(s.core.flow!.phase).toBe('running');
     const runnerId = turn.runners[0]!.id;
